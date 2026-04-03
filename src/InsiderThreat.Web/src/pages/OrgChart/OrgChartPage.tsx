@@ -5,6 +5,8 @@ import { api } from '../../services/api';
 import { Spin, Card, Avatar, Drawer, Input, Space, Divider, Typography } from 'antd';
 import { UserOutlined, ClusterOutlined, MailOutlined, PhoneOutlined, IdcardOutlined } from '@ant-design/icons';
 import './OrgChartPage.css';
+import BackButton from '../../components/BackButton';
+
 
 interface UserNode {
     id: string;
@@ -195,6 +197,7 @@ export default function OrgChartPage() {
 
     return (
         <div className="org-chart-page animate-in" style={{ padding: '20px' }}>
+            <BackButton />
             {/* Liquid Shine Title Banner */}
             <div className="org-chart-title-banner">
                 <div className="org-chart-title-container">

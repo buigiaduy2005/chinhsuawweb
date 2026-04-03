@@ -6,6 +6,8 @@ import NavigationBar from '../../components/NavigationBar';
 import LeftSidebar from '../../components/LeftSidebar';
 import api from '../../services/api';
 import styles from './TimesheetReportPage.module.css';
+import BackButton from '../../components/BackButton';
+
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -98,6 +100,7 @@ const TimesheetReportPage = () => {
                 
                 return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BackButton />
                         <div style={{ flex: 1, backgroundColor: '#e5e7eb', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ width: `${percent}%`, backgroundColor: color, height: '100%' }} />
                         </div>

@@ -60,8 +60,10 @@ function BlockedDevicesTable() {
 
     // Kết nối SignalR để nhận thông báo real-time
     useEffect(() => {
+        const token = localStorage.getItem('token');
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${API_BASE_URL}/hubs/system`)
+            .withUrl(`${API_BASE_URL}/hubs/system`, token ? { accessTokenFactory: () => token } : {})
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
             .configureLogging(signalR.LogLevel.Warning)
             .build();
 

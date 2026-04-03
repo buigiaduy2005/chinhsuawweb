@@ -9,6 +9,8 @@ import LanguageToggle from '../components/LanguageToggle';
 import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/Logo';
 import './ForgotPasswordPage.css';
+import BackButton from '../components/BackButton';
+
 
 const { Title } = Typography;
 
@@ -96,6 +98,7 @@ function ForgotPasswordPage() {
 
     return (
         <div className="forgot-password-page">
+            <BackButton />
              <div className="fp-controls">
                 <LanguageToggle />
                 <ThemeToggle />

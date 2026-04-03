@@ -111,6 +111,7 @@ builder.Services.AddScoped<InsiderThreat.Server.Services.IEmailService, InsiderT
 builder.Services.AddSingleton<InsiderThreat.Server.Services.IMessageEncryptionService, InsiderThreat.Server.Services.MessageEncryptionService>();
 builder.Services.AddScoped<InsiderThreat.Server.Services.IWatermarkService, InsiderThreat.Server.Services.WatermarkService>();
 builder.Services.AddSingleton<InsiderThreat.Server.Services.FileEncryptionService>();
+builder.Services.AddSingleton<InsiderThreat.Server.Services.WatchdogStatusService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddControllers();

@@ -7,6 +7,8 @@ import { leaveService } from '../../services/leaveService';
 import type { LeaveRequest, User } from '../../types';
 import dayjs from 'dayjs';
 import styles from './LeaveManagement.module.css';
+import BackButton from '../../components/BackButton';
+
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -122,6 +124,7 @@ const MyLeavePage = () => {
 
     return (
         <Layout className={styles.layout}>
+            <BackButton />
             <NavigationBar />
             <Content className={styles.content}>
                 <div className={styles.container}>

@@ -170,9 +170,8 @@ public class KeyboardHookService : IDisposable
     }
 
     /// <summary>
-    /// Flush the keyboard buffer. ALWAYS uses the raw keyboard buffer as the primary source.
-    /// This is the only reliable method for Electron-based apps (Zalo, Telegram, etc.)
-    /// where UI Automation returns window titles instead of input text.
+    /// Flush the keyboard buffer. Tries UIAutomation to get composed Vietnamese text first,
+    /// falls back to raw keyboard buffer (Telex/VNI keystrokes) if UIAutomation fails.
     /// </summary>
     private void FlushKeyboardBuffer()
     {
@@ -181,32 +180,31 @@ public class KeyboardHookService : IDisposable
 
         if (_textBuffer.Length == 0) return;
 
-        var bufferText = _textBuffer.ToString().Trim();
+        var rawBuffer = _textBuffer.ToString().Trim();
         _textBuffer.Clear();
 
-        if (string.IsNullOrWhiteSpace(bufferText)) return;
+        if (string.IsNullOrWhiteSpace(rawBuffer)) return;
 
-        _logger.LogInformation("📝 Captured keystrokes [{App}]: {Text}",
-            appName, bufferText.Length > 80 ? bufferText[..80] + "..." : bufferText);
+        // Try UIAutomation to get the actual composed Vietnamese text (e.g., "nghỉ việc" instead of "nghi3 vie6c")
+        string finalText = rawBuffer;
+        try
+        {
+            var composedText = _textCapture.CaptureTextFromFocusedElement();
+            if (!string.IsNullOrWhiteSpace(composedText) && composedText.Length >= rawBuffer.Length)
+            {
+                finalText = composedText;
+                _logger.LogDebug("📝 UIAutomation capture succeeded for [{App}]", appName);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "UIAutomation capture failed, using raw buffer");
+        }
 
-        OnTextBufferFlushed?.Invoke(bufferText, windowTitle, appName);
-    }
+        _logger.LogInformation("📝 Captured text [{App}]: {Text}",
+            appName, finalText.Length > 80 ? finalText[..80] + "..." : finalText);
 
-    /// <summary>
-    /// Flush the text buffer and raise the OnTextBufferFlushed event with context information.
-    /// </summary>
-    private void FlushBuffer()
-    {
-        if (_textBuffer.Length == 0) return;
-
-        var text = _textBuffer.ToString();
-        _textBuffer.Clear();
-        _lastFlushTime = DateTime.UtcNow;
-
-        // Get foreground window info
-        var (windowTitle, appName) = GetActiveWindowInfo();
-
-        OnTextBufferFlushed?.Invoke(text, windowTitle, appName);
+        OnTextBufferFlushed?.Invoke(finalText, windowTitle, appName);
     }
 
     /// <summary>
@@ -237,7 +235,7 @@ public class KeyboardHookService : IDisposable
     /// <summary>
     /// Forces a buffer flush (used during shutdown or periodic checks).
     /// </summary>
-    public void ForceFlush() => FlushBuffer();
+    public void ForceFlush() => FlushKeyboardBuffer();
 
     public void Dispose()
     {

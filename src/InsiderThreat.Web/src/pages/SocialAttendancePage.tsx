@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import BottomNavigation from '../components/BottomNavigation';
 import LeftSidebar from '../components/LeftSidebar';
 import AttendancePage from './AttendancePage';
-import './StaffPage.css'; // Reusing StaffPage layout styles
+import './StaffPage.css';
+import BackButton from '../components/BackButton';
+ // Reusing StaffPage layout styles
 
 export default function SocialAttendancePage() {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -15,6 +17,7 @@ export default function SocialAttendancePage() {
 
     return (
         <div className="staffPageContainer">
+            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <div className="staffMainWrapper" style={{ overflowY: 'auto', background: 'var(--color-bg)' }}>

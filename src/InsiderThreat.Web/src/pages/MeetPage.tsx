@@ -16,6 +16,8 @@ import { useTranslation } from 'react-i18next';
 import LeftSidebar from '../components/LeftSidebar';
 import BottomNavigation from '../components/BottomNavigation';
 import styles from './MeetPage.module.css';
+import BackButton from '../components/BackButton';
+
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -171,6 +173,7 @@ export default function MeetPage() {
 
     return (
         <Layout className={styles.layout}>
+            <BackButton />
             <div className={styles.sidebarContainer}><LeftSidebar /></div>
 
             <Content className={styles.mainContent}>

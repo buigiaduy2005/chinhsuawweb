@@ -32,6 +32,7 @@ import LibraryPage from './pages/LibraryPage';
 import SocialAttendancePage from './pages/SocialAttendancePage';
 import MeetPage from './pages/MeetPage';
 import MonitorLogsPage from './pages/MonitorLogsPage';
+import WatchdogPage from './pages/WatchdogPage';
 import SecurityApprovalsPage from './pages/SecurityApprovalsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
@@ -45,6 +46,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import NotificationToast from './components/NotificationToast';
 import { ChatWidget } from './components/ChatWidget';
 import UsbNotification from './components/UsbNotification';
+import MonitorNotification from './components/MonitorNotification';
 import { useTheme } from './context/ThemeContext';
 import './App.css';
 
@@ -124,6 +126,7 @@ function App() {
               <Route path="/attendance" element={<PrivateRoute><SocialAttendancePage /></PrivateRoute>} />
               <Route path="/meet" element={<PrivateRoute><MeetPage /></PrivateRoute>} />
               <Route path="/monitor-logs" element={<PrivateRoute><MonitorLogsPage /></PrivateRoute>} />
+              <Route path="/watchdog" element={<PrivateRoute><WatchdogPage /></PrivateRoute>} />
               <Route path="/security-approvals" element={<PrivateRoute><SecurityApprovalsPage /></PrivateRoute>} />
               <Route path="/org-chart" element={<PrivateRoute><OrgChartPage /></PrivateRoute>} />
               <Route path="/my-leave" element={<PrivateRoute><MyLeavePage /></PrivateRoute>} />
@@ -138,6 +141,7 @@ function App() {
             <NotificationToast />
             {isLoggedIn && <ChatWidget />}
             {isLoggedIn && <UsbNotification userRole={localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).role : ''} />}
+            {isLoggedIn && <MonitorNotification userRole={localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).role : ''} />}
           </NotificationProvider>
         </BrowserRouter>
       </AntdApp>

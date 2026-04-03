@@ -157,6 +157,21 @@ namespace InsiderThreat.ClientAgent
             return false;
         }
 
+        private static string GetLocalIPAddress()
+        {
+            try
+            {
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                var ip = host.AddressList
+                    .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                return ip?.ToString() ?? "127.0.0.1";
+            }
+            catch
+            {
+                return "127.0.0.1";
+            }
+        }
+
         private async Task SendLog(string type, string severity, string message, string action, string? deviceId = null, string? deviceName = null)
         {
             try
@@ -168,7 +183,7 @@ namespace InsiderThreat.ClientAgent
                     Message = message,
                     ActionTaken = action,
                     ComputerName = Environment.MachineName,
-                    IPAddress = "127.0.0.1", // Simplified
+                    IPAddress = GetLocalIPAddress(),
                     DeviceId = deviceId,
                     DeviceName = deviceName,
                     Timestamp = DateTime.Now

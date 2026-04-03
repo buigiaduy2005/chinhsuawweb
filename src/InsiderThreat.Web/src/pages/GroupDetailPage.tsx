@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
 import SynchroHeader from '../components/SynchroHeader';
 import './GroupDetailPage.css';
+import BackButton from '../components/BackButton';
+
 
 const TABS = [
     { key: 'dashboard', label: 'project_detail.tabs.dashboard', icon: 'dashboard' },
@@ -69,6 +71,7 @@ export default function GroupDetailPage() {
 
     return (
         <div className="groupDetail-container">
+            <BackButton />
             {/* DEBUG MARKER */}
             {!isMobile && <LeftSidebar defaultCollapsed={true} />}
             

@@ -4,6 +4,8 @@ import { DeleteOutlined, EyeOutlined, LikeOutlined, MessageOutlined } from '@ant
 import { api } from '../services/api';
 import type { Post } from '../types';
 import type { ColumnsType } from 'antd/es/table';
+import BackButton from '../components/BackButton';
+
 
 function PostManagementPage() {
     const [posts, setPosts] = useState<Post[]>([]);
@@ -114,6 +116,7 @@ function PostManagementPage() {
 
     return (
         <div style={{ padding: 24 }}>
+            <BackButton />
             <div style={{ marginBottom: 16 }}>
                 <h2>📝 Quản lý Bài viết</h2>
             </div>

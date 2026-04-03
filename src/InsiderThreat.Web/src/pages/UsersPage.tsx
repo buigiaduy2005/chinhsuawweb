@@ -11,6 +11,8 @@ import { DEPARTMENTS } from '../constants';
 import { feedService } from '../services/feedService';
 import { authService } from '../services/auth';
 import './UsersPage.css';
+import BackButton from '../components/BackButton';
+
 
 const { Option } = Select;
 
@@ -230,6 +232,7 @@ function UsersPage() {
 
     return (
         <div className="usersPage-wrapper-inner">
+            <BackButton />
             <div className="usersPage">
                 {/* Mockup TOP Header (Only on Mobile) */}
                 {isMobile && (

@@ -30,6 +30,8 @@ import { monitorService } from '../services/monitorService';
 import { useTheme } from '../context/ThemeContext';
 import './MonitorLogsPage.css';
 import type { MonitorLog, MonitorSummary } from '../services/monitorService';
+import BackButton from '../components/BackButton';
+
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, Legend, 
@@ -585,6 +587,7 @@ const MonitorLogsPage: React.FC = () => {
     // ─── RENDER ──────────────────────────
     return (
         <div className={`monitor-logs-container ${isMobile ? 'mobile' : ''} ${isDark ? 'dark' : ''}`}>
+            <BackButton />
             {/* 📱 Header & Navigation */}
             <div className={`monitor-header ${isMobile ? 'mobile' : ''}`}>
                 <div>

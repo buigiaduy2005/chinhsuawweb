@@ -3,6 +3,8 @@ import { Table, Button, Tag, Space, Card, Typography, message, Empty, Alert } fr
 import { CheckOutlined, CloseOutlined, SafetyOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
 import LeftSidebar from '../components/LeftSidebar';
+import BackButton from '../components/BackButton';
+
 
 const { Title, Text } = Typography;
 
@@ -114,6 +116,7 @@ export default function SecurityApprovalsPage() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f5' }}>
+            <BackButton />
             <LeftSidebar />
             <div style={{ flex: 1, padding: '24px' }}>
                 <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

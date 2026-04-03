@@ -7,6 +7,8 @@ import { userService } from '../services/userService';
 import { api, API_BASE_URL } from '../services/api';
 import type { User } from '../types';
 import './GroupsPage.css';
+import BackButton from '../components/BackButton';
+
 
 interface Group {
     id: string;
@@ -151,6 +153,7 @@ export default function GroupsPage() {
 
     return (
         <div className="groupsPage-container">
+            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <div className="groupsPage-main-wrapper">

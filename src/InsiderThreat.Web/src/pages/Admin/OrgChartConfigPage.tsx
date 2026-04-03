@@ -5,6 +5,8 @@ import { userService } from '../../services/userService';
 import { Table, Select, Avatar, Tag, Card, message, Space, Breadcrumb, Input } from 'antd';
 import { ClusterOutlined, UserOutlined, SaveOutlined } from '@ant-design/icons';
 import type { User } from '../../types';
+import BackButton from '../../components/BackButton';
+
 
 export default function OrgChartConfigPage() {
     const { t } = useTranslation();
@@ -153,6 +155,7 @@ export default function OrgChartConfigPage() {
 
     return (
         <div className="p-8 max-w-6xl mx-auto animate-in">
+            <BackButton />
             <Breadcrumb className="mb-6">
                 <Breadcrumb.Item>Cài đặt</Breadcrumb.Item>
                 <Breadcrumb.Item>Cấu hình Sơ đồ Tổ chức</Breadcrumb.Item>

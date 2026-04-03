@@ -13,6 +13,8 @@ import FaceRegistrationModal from '../components/FaceRegistrationModal';
 import EditProfileModal from '../components/EditProfileModal';
 import { useTranslation } from 'react-i18next';
 import './ProfilePage.css';
+import BackButton from '../components/BackButton';
+
 
 type TabType = 'overview' | 'security' | 'activity' | 'connections';
 
@@ -167,6 +169,7 @@ export default function ProfilePage() {
 
     return (
         <div className="profile-container">
+            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <main className="profile-main-content">

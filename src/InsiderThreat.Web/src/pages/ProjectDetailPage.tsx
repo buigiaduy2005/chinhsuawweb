@@ -14,6 +14,8 @@ import SynchroHeader from '../components/SynchroHeader';
 import ProjectSidebar from '../components/groups/ProjectSidebar';
 import { HistoryOutlined, ThunderboltFilled } from '@ant-design/icons';
 import './ProjectDetailPage.css';
+import BackButton from '../components/BackButton';
+
 
 const TABS = [
     { key: 'dashboard', label: 'project_detail.tabs.dashboard', icon: 'dashboard' },
@@ -133,6 +135,7 @@ export default function ProjectDetailPage() {
 
     return (
         <div className="groupDetail-container">
+            <BackButton />
             {/* DEBUG MARKER */}
             {!isMobile && <LeftSidebar defaultCollapsed={true} />}
             

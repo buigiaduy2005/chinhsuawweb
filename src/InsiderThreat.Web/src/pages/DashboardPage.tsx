@@ -10,6 +10,8 @@ import {
     TeamOutlined,
     MessageOutlined,
     WarningOutlined,
+    SafetyOutlined,
+    DesktopOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +22,7 @@ import UsbAnalyticsChart from '../components/UsbAnalyticsChart';
 import BlockedDevicesTable from '../components/BlockedDevicesTable';
 import WhitelistTable from '../components/WhitelistTable';
 import RecentLogsTable from '../components/RecentLogsTable';
+import MonitorSummaryCards from '../components/MonitorSummaryCards';
 import UsersPage from './UsersPage';
 import PostManagementPage from './PostManagementPage';
 import DocumentsPage from './DocumentsPage';
@@ -27,6 +30,8 @@ import AttendancePage from './AttendancePage';
 import ReportsPage from './ReportsPage';
 import BottomNavigation from '../components/BottomNavigation';
 import './DashboardPage.css';
+import BackButton from '../components/BackButton';
+
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -44,11 +49,11 @@ function DashboardPage() {
         }
     }, [user, navigate]);
 
-    // Navigate to /feed when Feed menu is selected
+    // Navigate to external routes when menu items are selected
     useEffect(() => {
-        if (selectedKey === 'feed') {
-            navigate('/feed');
-        }
+        if (selectedKey === 'feed') navigate('/feed');
+        if (selectedKey === 'watchdog') navigate('/watchdog');
+        if (selectedKey === 'monitor-logs') navigate('/monitor-logs');
     }, [selectedKey, navigate]);
 
     const handleLogout = () => {
@@ -102,6 +107,16 @@ function DashboardPage() {
             key: 'reports',
             icon: <WarningOutlined />,
             label: t('dashboard.menu_reports', 'Báo cáo vi phạm'),
+        });
+        menuItems.push({
+            key: 'monitor-logs',
+            icon: <DesktopOutlined />,
+            label: t('dashboard.menu_monitor', '🖥️ Giám sát Hành vi'),
+        });
+        menuItems.push({
+            key: 'watchdog',
+            icon: <SafetyOutlined />,
+            label: t('dashboard.menu_watchdog', '🛡️ Watchdog'),
         });
     }
 
@@ -157,6 +172,7 @@ function DashboardPage() {
             case 'usb':
                 return (
                     <div className={`content-wrapper ${isMobile ? 'mobile-usb-content' : ''}`}>
+            <BackButton />
                         {!isMobile && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <Title level={2} style={{ margin: 0 }}>{t('dashboard.usb_title', '🔐 USB Device Management')}</Title>
@@ -186,6 +202,9 @@ function DashboardPage() {
                                 <Avatar size={40} src="https://i.pravatar.cc/150?u=admin" />
                             </header>
                         )}
+
+                        {/* 📊 THỐNG KÊ HÀNH VI HÔM NAY */}
+                        <MonitorSummaryCards />
 
                         {/* 📊 BIỂU ĐỒ PHÂN TÍCH USB */}
                         <UsbAnalyticsChart />

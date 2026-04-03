@@ -6,6 +6,8 @@ import { api } from '../services/api';
 import type { LogEntry } from '../types';
 import type { ColumnsType } from 'antd/es/table';
 import DocumentAnalyticsChart from '../components/DocumentAnalyticsChart';
+import BackButton from '../components/BackButton';
+
 
 const { Title, Text } = Typography;
 
@@ -75,6 +77,7 @@ function DocumentsPage() {
 
     return (
         <div style={{ padding: 24 }}>
+            <BackButton />
             <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <Title level={2} style={{ margin: 0 }}>

@@ -16,6 +16,8 @@ import WelcomeSection from '../components/WelcomeSection';
 import CreatePostModal from '../components/social/CreatePostModal';
 import { POST_CATEGORIES } from '../constants';
 import './FeedPage.css';
+import BackButton from '../components/BackButton';
+
 
 export default function FeedPage() {
     const navigate = useNavigate();
@@ -157,6 +159,7 @@ export default function FeedPage() {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-[var(--color-bg)] text-[var(--color-text-main)]">
+            <BackButton />
             {/* New Navigation Bar */}
             <NavigationBar onChatClick={() => navigate('/chat')} />
 

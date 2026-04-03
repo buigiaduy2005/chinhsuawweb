@@ -13,6 +13,8 @@ import { renderAsync } from "docx-preview";
 import SecureDocumentViewer from '../components/SecureDocumentViewer';
 import { preloadPhoneDetectorModel } from '../hooks/usePhoneDetector';
 import './LibraryPage.css';
+import BackButton from '../components/BackButton';
+
 
 const DocxPreview = ({ docId }: { docId: string }) => {
     const { t } = useTranslation();
@@ -59,6 +61,7 @@ const DocxPreview = ({ docId }: { docId: string }) => {
 
     return (
         <div style={{ width: '100%', height: '100%', overflow: 'auto', backgroundColor: 'var(--color-bg)', position: 'relative' }}>
+            <BackButton />
             {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', padding: '10px 20px', background: 'var(--color-surface)', borderRadius: 8, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', color: 'var(--color-text-main)' }}>{t('library.loading', 'Đang tải...')}</div>}
             {error && <div style={{ padding: 20, textAlign: 'center', color: 'red' }}>{t('library.error_prefix', 'Lỗi:')} {error}</div>}
             <div ref={containerRef} style={{ padding: '20px', minHeight: '100%' }} />
