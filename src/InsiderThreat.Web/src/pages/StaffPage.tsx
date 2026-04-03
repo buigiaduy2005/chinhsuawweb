@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { userService } from '../services/userService';
 import { API_BASE_URL } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { authService } from '../services/auth';
 import type { User } from '../types';
 import BottomNavigation from '../components/BottomNavigation';
 import LeftSidebar from '../components/LeftSidebar';
@@ -26,6 +27,11 @@ function getColor(name: string) {
 export default function StaffPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const userProfile = authService.getCurrentUser();
+    const isAdmin = userProfile?.role?.toLowerCase().includes('admin') ||
+                    userProfile?.role?.toLowerCase() === 'giám đốc' ||
+                    userProfile?.role?.toLowerCase() === 'director' ||
+                    userProfile?.username?.toLowerCase() === 'admin';
     const [users, setUsers] = useState<User[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
@@ -103,10 +109,23 @@ export default function StaffPage() {
             <div className="staffMainWrapper">
                 {/* Header */}
                 <header className="staffHeaderMobile">
-                    <h1 className="staffTitleMobile">{t('staff.title', 'Nhân sự')}</h1>
-                    <button className="addStaffBtn">
-                        <span className="material-symbols-outlined">person_add</span>
-                    </button>
+                    <div className="headerLeft">
+                        <h1 className="staffTitleMobile">{t('staff.title', 'Nhân sự')}</h1>
+                    </div>
+                    <div className="headerActions">
+                        <button className="actionBtn orgChartBtn" onClick={() => navigate('/org-chart')}>
+                            <span className="material-symbols-outlined">account_tree</span>
+                            <span>{t('staff.view_chart', 'Sơ đồ tổ chức')}</span>
+                        </button>
+                        {isAdmin && (
+                            <button className="actionBtn configBtn" onClick={() => navigate('/org-chart/config')}>
+                                <span className="material-symbols-outlined">settings_accessibility</span>
+                            </button>
+                        )}
+                        <button className="actionBtn addStaffBtnPrimary">
+                            <span className="material-symbols-outlined">person_add</span>
+                        </button>
+                    </div>
                 </header>
 
                 {/* Search */}

@@ -28,6 +28,15 @@ export function useWebRTC() {
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [peerUpdateCounter, setPeerUpdateCounter] = useState(0); // Force re-render trigger
+    const [transcripts, setTranscripts] = useState<{ speaker: string; text: string; timestamp: string }[]>([]);
+    const [isRoomHost, setIsRoomHost] = useState(false);
+    const [isTranscriptActive, setIsTranscriptActive] = useState(false);
+    const [chatMessages, setChatMessages] = useState<{ connectionId: string; speaker: string; text: string; timestamp: string }[]>([]);
+    const [raisedHands, setRaisedHands] = useState<Set<string>>(new Set());
+    const [waitingList, setWaitingList] = useState<{ connectionId: string; displayName: string }[]>([]);
+    const [isWaiting, setIsWaiting] = useState(false);
+    const [isJoinRejected, setIsJoinRejected] = useState(false);
+    const [mutedByHost, setMutedByHost] = useState<Set<string>>(new Set());
 
     const connectionRef = useRef<signalR.HubConnection | null>(null);
     const peersRef = useRef<Map<string, PeerState>>(new Map());
@@ -176,6 +185,80 @@ export function useWebRTC() {
         conn.off('ReceiveAnswer');
         conn.off('ReceiveIceCandidate');
         conn.off('UserLeft');
+        conn.off('ReceiveTranscript');
+        conn.off('TranscriptStarted');
+        conn.off('TranscriptStopped');
+        conn.off('ReceiveChatMessage');
+        conn.off('ParticipantRaisedHand');
+        conn.off('ParticipantLoweredHand');
+        conn.off('ParticipantWaiting');
+        conn.off('JoinApproved');
+        conn.off('JoinRejected');
+        conn.off('WaitingForApproval');
+        conn.off('ForceMuted');
+        conn.off('ForceUnmuted');
+        conn.off('ParticipantMuted');
+        conn.off('AllMuted');
+        conn.off('AllUnmuted');
+
+        conn.on('ReceiveTranscript', (_connectionId: string, displayName: string, text: string, timestamp: string) => {
+            setTranscripts(prev => [...prev, { speaker: displayName, text, timestamp }]);
+        });
+        conn.on('TranscriptStarted', () => setIsTranscriptActive(true));
+        conn.on('TranscriptStopped', () => setIsTranscriptActive(false));
+
+        conn.on('ReceiveChatMessage', (connectionId: string, speaker: string, text: string, timestamp: string) => {
+            setChatMessages(prev => [...prev, { connectionId, speaker, text, timestamp }]);
+        });
+
+        conn.on('ParticipantRaisedHand', (connectionId: string) => {
+            setRaisedHands(prev => new Set(prev).add(connectionId));
+        });
+        conn.on('ParticipantLoweredHand', (connectionId: string) => {
+            setRaisedHands(prev => { const s = new Set(prev); s.delete(connectionId); return s; });
+        });
+
+        // Waiting room events
+        conn.on('ParticipantWaiting', (participant: { connectionId: string; displayName: string }) => {
+            setWaitingList(prev => [...prev.filter(p => p.connectionId !== participant.connectionId), participant]);
+        });
+        conn.on('WaitingForApproval', () => setIsWaiting(true));
+        conn.on('JoinRejected', () => { setIsWaiting(false); setIsJoinRejected(true); });
+
+        // Mic control events
+        conn.on('ForceMuted', () => {
+            // Tắt mic local
+            if (localStreamRef.current) {
+                const audioTrack = localStreamRef.current.getAudioTracks()[0];
+                if (audioTrack) { audioTrack.enabled = false; }
+            }
+            setIsAudioEnabled(false);
+        });
+        conn.on('ForceUnmuted', () => {
+            if (localStreamRef.current) {
+                const audioTrack = localStreamRef.current.getAudioTracks()[0];
+                if (audioTrack) { audioTrack.enabled = true; }
+            }
+            setIsAudioEnabled(true);
+        });
+        conn.on('ParticipantMuted', (connectionId: string) => {
+            setMutedByHost(prev => new Set(prev).add(connectionId));
+        });
+        conn.on('AllMuted', () => {
+            setMutedByHost(prev => {
+                const s = new Set(prev);
+                peersRef.current.forEach((_, id) => s.add(id));
+                return s;
+            });
+        });
+        conn.on('AllUnmuted', () => setMutedByHost(new Set()));
+
+        conn.on('UserLeft', (connectionId: string) => {
+            removePeer(connectionId);
+            setRaisedHands(prev => { const s = new Set(prev); s.delete(connectionId); return s; });
+            setMutedByHost(prev => { const s = new Set(prev); s.delete(connectionId); return s; });
+            setWaitingList(prev => prev.filter(p => p.connectionId !== connectionId));
+        });
 
         conn.on('UserJoined', (participant: { connectionId: string; displayName: string }) => {
             console.log('[SignalR] UserJoined:', participant.displayName, participant.connectionId);
@@ -264,16 +347,17 @@ export function useWebRTC() {
         return conn;
     }, [setupSignalRHandlers]);
 
-    const createRoom = useCallback(async (): Promise<string> => {
+    const createRoom = useCallback(async (requireApproval: boolean = false): Promise<string> => {
         const stream = await getMediaStream();
         localStreamRef.current = stream;
         setLocalStream(stream);
         setDisplayStream(stream);
 
         const conn = await connectSignalR();
-        const code = await conn.invoke<string>('CreateRoom');
+        const code = await conn.invoke<string>('CreateRoom', requireApproval);
         setRoomCode(code);
-        console.log('[WebRTC] Room created:', code);
+        setIsRoomHost(true);
+        console.log('[WebRTC] Room created:', code, 'requireApproval:', requireApproval);
         return code;
     }, [getMediaStream, connectSignalR]);
 
@@ -285,20 +369,35 @@ export function useWebRTC() {
 
         const conn = await connectSignalR();
 
-        const existingParticipants = await conn.invoke<Array<{ connectionId: string; displayName: string }>>('JoinRoom', code);
+        // Đăng ký handler JoinApproved trước khi gửi request
+        const approvalPromise = new Promise<Array<{ connectionId: string; displayName: string }>>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Yêu cầu vào phòng hết thời gian')), 120000);
+            conn.on('JoinApproved', (existingParticipants: Array<{ connectionId: string; displayName: string }>) => {
+                clearTimeout(timeout);
+                conn.off('JoinApproved');
+                resolve(existingParticipants);
+            });
+            conn.on('JoinRejected', () => {
+                clearTimeout(timeout);
+                conn.off('JoinRejected');
+                reject(new Error('Yêu cầu vào phòng bị từ chối'));
+            });
+        });
+
+        await conn.invoke('RequestJoinRoom', code);
+        // isWaiting được set bởi WaitingForApproval event trong setupSignalRHandlers
+
+        const existingParticipants = await approvalPromise;
+        setIsWaiting(false);
         setRoomCode(code);
         console.log('[WebRTC] Joined room:', code, 'Existing participants:', existingParticipants.length);
 
-        // Small delay to ensure SignalR handlers are fully set up
         await new Promise(resolve => setTimeout(resolve, 100));
 
         for (const participant of existingParticipants) {
             try {
                 const pc = createPeerConnection(participant.connectionId, participant.displayName);
-                const offer = await pc.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true,
-                });
+                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
                 await pc.setLocalDescription(offer);
                 await conn.invoke('SendOffer', participant.connectionId, JSON.stringify(pc.localDescription));
                 console.log('[WebRTC] Sent offer to:', participant.displayName);
@@ -331,6 +430,15 @@ export function useWebRTC() {
         setIsAudioEnabled(true);
         setIsVideoEnabled(true);
         setIsScreenSharing(false);
+        setIsRoomHost(false);
+        setIsTranscriptActive(false);
+        setTranscripts([]);
+        setChatMessages([]);
+        setRaisedHands(new Set());
+        setWaitingList([]);
+        setIsWaiting(false);
+        setIsJoinRejected(false);
+        setMutedByHost(new Set());
     }, [updatePeers]);
 
     const toggleAudio = useCallback(() => {
@@ -425,6 +533,76 @@ export function useWebRTC() {
         };
     }, []);
 
+    const sendTranscript = useCallback(async (text: string, displayName: string) => {
+        if (!connectionRef.current) return;
+        const timestamp = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        try {
+            await connectionRef.current.invoke('SendTranscript', text, displayName, timestamp);
+        } catch (err) {
+            console.error('[WebRTC] Failed to send transcript:', err);
+        }
+    }, []);
+
+    const sendChatMessage = useCallback(async (text: string) => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('SendChatMessage', text); } catch (err) { console.error('[WebRTC] Chat error:', err); }
+    }, []);
+
+    const raiseHand = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('RaiseHand'); } catch { /* ignore */ }
+    }, []);
+
+    const lowerHand = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('LowerHand'); } catch { /* ignore */ }
+    }, []);
+
+    const muteParticipant = useCallback(async (targetConnectionId: string) => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('MuteParticipant', targetConnectionId); } catch (err) { console.error('[WebRTC] Mute error:', err); }
+    }, []);
+
+    const muteAll = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('MuteAll'); } catch (err) { console.error('[WebRTC] MuteAll error:', err); }
+    }, []);
+
+    const unmuteAll = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try { await connectionRef.current.invoke('UnmuteAll'); } catch (err) { console.error('[WebRTC] UnmuteAll error:', err); }
+    }, []);
+
+    const approveParticipant = useCallback(async (connectionId: string) => {
+        if (!connectionRef.current) return;
+        setWaitingList(prev => prev.filter(p => p.connectionId !== connectionId));
+        try { await connectionRef.current.invoke('ApproveParticipant', connectionId); } catch (err) { console.error('[WebRTC] Approve error:', err); }
+    }, []);
+
+    const rejectParticipant = useCallback(async (connectionId: string) => {
+        if (!connectionRef.current) return;
+        setWaitingList(prev => prev.filter(p => p.connectionId !== connectionId));
+        try { await connectionRef.current.invoke('RejectParticipant', connectionId); } catch (err) { console.error('[WebRTC] Reject error:', err); }
+    }, []);
+
+    const startTranscript = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try {
+            await connectionRef.current.invoke('StartTranscript');
+        } catch (err) {
+            console.error('[WebRTC] Failed to start transcript:', err);
+        }
+    }, []);
+
+    const stopTranscript = useCallback(async () => {
+        if (!connectionRef.current) return;
+        try {
+            await connectionRef.current.invoke('StopTranscript');
+        } catch (err) {
+            console.error('[WebRTC] Failed to stop transcript:', err);
+        }
+    }, []);
+
     return {
         localStream: displayStream,
         peers,
@@ -433,12 +611,32 @@ export function useWebRTC() {
         isAudioEnabled,
         isVideoEnabled,
         isScreenSharing,
-        peerUpdateCounter, // Expose for RemoteVideo key
+        peerUpdateCounter,
+        transcripts,
+        chatMessages,
+        raisedHands,
+        waitingList,
+        isWaiting,
+        isJoinRejected,
+        mutedByHost,
+        isRoomHost,
+        isTranscriptActive,
         createRoom,
         joinRoom,
         leaveRoom,
         toggleAudio,
         toggleVideo,
         toggleScreenShare,
+        sendTranscript,
+        startTranscript,
+        stopTranscript,
+        sendChatMessage,
+        raiseHand,
+        lowerHand,
+        muteParticipant,
+        muteAll,
+        unmuteAll,
+        approveParticipant,
+        rejectParticipant,
     };
 }

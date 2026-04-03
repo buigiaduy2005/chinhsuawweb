@@ -300,6 +300,91 @@
     }
 }
 
+/* Header Actions Styles */
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.actionBtn {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-text-main);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0 12px;
+}
+
+.orgChartBtn {
+    background: linear-gradient(135deg, var(--color-primary), #6366f1);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.orgChartBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.orgChartBtn span:not(.material-symbols-outlined) {
+    display: none;
+}
+
+.configBtn {
+    width: 40px;
+    padding: 0;
+    color: var(--color-text-muted);
+}
+
+.configBtn:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.addStaffBtnPrimary {
+    width: 40px;
+    padding: 0;
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+}
+
+.addStaffBtnPrimary:hover {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+@media (min-width: 768px) {
+    .orgChartBtn span:not(.material-symbols-outlined) {
+        display: block;
+    }
+    
+    .headerActions {
+        gap: 12px;
+    }
+    
+    .actionBtn {
+        height: 44px;
+        padding: 0 16px;
+    }
+    
+    .configBtn, .addStaffBtnPrimary {
+        width: 44px;
+        padding: 0;
+    }
+}
+
 @media (max-width: 767px) {
     .deptGridMobile {
         grid-template-columns: 1fr 1fr;
