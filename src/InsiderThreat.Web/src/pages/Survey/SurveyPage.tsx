@@ -10,7 +10,6 @@ import { authService } from '../../services/auth';
 import PostCard from '../../components/social/PostCard';
 import SurveyCreator from './components/SurveyCreator';
 import './SurveyPage.css';
-import BackButton from '../../components/BackButton';
 
 
 const { TabPane } = Tabs;
@@ -57,7 +56,6 @@ const SurveyPage: React.FC = () => {
 
     return (
         <div className="survey-layout-wrapper">
-            <BackButton />
             <NavigationBar />
             
             <div className="social-layout">

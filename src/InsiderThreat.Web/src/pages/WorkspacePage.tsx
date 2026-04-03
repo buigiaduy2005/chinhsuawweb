@@ -29,7 +29,6 @@ import LeftSidebar from '../components/LeftSidebar';
 import BottomNavigation from '../components/BottomNavigation';
 import { useNavigate } from 'react-router-dom';
 import './WorkspacePage.css';
-import BackButton from '../components/BackButton';
 
 
 dayjs.extend(relativeTime);
@@ -207,7 +206,6 @@ export default function WorkspacePage() {
             
             return (
                 <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-            <BackButton />
                     {dateTasks.map((item: any) => (
                         <div 
                             key={`task-${item.id}`} 
@@ -235,7 +233,7 @@ export default function WorkspacePage() {
     if (loading || !stats) {
         return (
             <div className="workspace-layout-wrapper">
-                <NavigationBar />
+                <NavigationBar hideSearch={true} />
                 <div className="flex flex-1 items-center justify-center">
                     <Spin size="large" />
                 </div>
@@ -245,7 +243,7 @@ export default function WorkspacePage() {
 
     return (
         <div className="workspace-layout-wrapper">
-            <NavigationBar />
+            <NavigationBar hideSearch={true} />
             
             <div className="social-layout">
                 <LeftSidebar />

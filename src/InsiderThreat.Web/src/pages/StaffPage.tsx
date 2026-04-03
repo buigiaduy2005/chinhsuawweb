@@ -8,7 +8,6 @@ import type { User } from '../types';
 import BottomNavigation from '../components/BottomNavigation';
 import LeftSidebar from '../components/LeftSidebar';
 import './StaffPage.css';
-import BackButton from '../components/BackButton';
 
 
 function getInitials(name: string) {
@@ -106,7 +105,6 @@ export default function StaffPage() {
 
     return (
         <div className="staffPageContainer">
-            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <div className="staffMainWrapper">

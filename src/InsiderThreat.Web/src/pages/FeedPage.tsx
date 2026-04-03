@@ -12,11 +12,11 @@ import LeftSidebar from '../components/LeftSidebar';
 import FloatingChat from '../components/chat/FloatingChat';
 import RightSidebar from '../components/social/RightSidebar';
 import BottomNavigation from '../components/BottomNavigation';
-import WelcomeSection from '../components/WelcomeSection';
+
 import CreatePostModal from '../components/social/CreatePostModal';
 import { POST_CATEGORIES } from '../constants';
 import './FeedPage.css';
-import BackButton from '../components/BackButton';
+
 
 
 export default function FeedPage() {
@@ -159,9 +159,8 @@ export default function FeedPage() {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-[var(--color-bg)] text-[var(--color-text-main)]">
-            <BackButton />
             {/* New Navigation Bar */}
-            <NavigationBar onChatClick={() => navigate('/chat')} />
+            <NavigationBar onChatClick={() => navigate('/chat')} hideSearch={true} />
 
             <div className="social-layout">
                 {/* Left Navigation Sidebar */}
@@ -170,8 +169,6 @@ export default function FeedPage() {
                 {/* Main Feed Content */}
                 <div className="feed-wrapper">
                     <div className="feed-container">
-                        {/* Welcome Section */}
-                        <WelcomeSection />
 
                         {/* Create Post — Premium Trigger */}
                         <div className="post-composer-trigger">

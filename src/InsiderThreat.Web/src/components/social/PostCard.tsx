@@ -176,7 +176,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
 
             {/* Post Content */}
             <div className={styles.content}>
-                <div className="mb-4 text-slate-800 dark:text-slate-200 text-[15px] leading-relaxed">
+                <div 
+                    className="mb-5 text-[18px] font-black leading-relaxed" 
+                    style={{ color: '#000000', opacity: 1, fontWeight: 900 }}
+                >
                     {post.content}
                 </div>
                 
@@ -257,10 +260,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
                                                     }}
                                                 />
                                                 <div className="relative z-10 flex justify-between items-center text-sm px-4 h-11">
-                                                    <span className={`font-semibold flex items-center gap-2 ${myVote ? 'text-blue-700' : 'text-slate-700'}`}>
-                                                        {opt.text} {myVote && <span className="bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5 text-[10px]">BẠN ĐÃ CHỌN</span>}
+                                                    <span className={`font-bold flex items-center gap-2 ${myVote ? 'text-blue-800' : 'text-slate-900'}`}>
+                                                        {opt.text} {myVote && <span className="bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-[10px] font-black">BẠN ĐÃ CHỌN</span>}
                                                     </span>
-                                                    <span className="text-slate-500 font-bold">{percentage}%</span>
+                                                    <span className="text-slate-900 font-extrabold">{percentage}%</span>
                                                 </div>
                                             </div>
                                         ) : (
@@ -268,7 +271,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
                                                 <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-blue-500 flex items-center justify-center transition-all">
                                                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500 scale-0 group-hover:scale-100 transition-all" />
                                                 </div>
-                                                <span className="text-[14px] font-semibold text-slate-700">{opt.text}</span>
+                                                <span className="text-[14px] font-bold text-slate-900">{opt.text}</span>
                                             </div>
                                         )}
                                     </div>

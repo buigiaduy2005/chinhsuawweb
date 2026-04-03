@@ -12,7 +12,6 @@ import type { ActiveNetwork } from '../services/attendanceService';
 import type { AttendanceLog } from '../types';
 import type { ColumnsType } from 'antd/es/table';
 import './AttendancePage.css';
-import BackButton from '../components/BackButton';
 
 
 const { Title } = Typography;
@@ -218,8 +217,7 @@ function AttendancePage() {
     const borderColor = scanPhase === 'success' ? '#52c41a' : scanPhase === 'comparing' ? '#1890ff' : '#d9d9d9';
 
     return (
-        <div style={{ padding: 24 }}>
-            <BackButton />
+        <div style={{ padding: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
                 <Title level={2} style={{ margin: 0 }}>{t('attendance.title', '📅 Lịch sử Chấm công')}</Title>
                 <Button

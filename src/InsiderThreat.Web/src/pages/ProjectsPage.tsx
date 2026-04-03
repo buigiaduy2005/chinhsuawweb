@@ -7,7 +7,6 @@ import { userService } from '../services/userService';
 import { api, API_BASE_URL } from '../services/api';
 import type { User } from '../types';
 import './ProjectsPage.css';
-import BackButton from '../components/BackButton';
 
 
 interface Project {
@@ -197,7 +196,6 @@ export default function ProjectsPage() {
 
     return (
         <div className="groupsPage-container">
-            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <div className="groupsPage-main-wrapper">

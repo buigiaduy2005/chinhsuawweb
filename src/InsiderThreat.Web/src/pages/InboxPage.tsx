@@ -13,7 +13,6 @@ import { api } from '../services/api';
 import LeftSidebar from '../components/LeftSidebar';
 import BottomNavigation from '../components/BottomNavigation';
 import './InboxPage.css';
-import BackButton from '../components/BackButton';
 
 
 dayjs.extend(relativeTime);
@@ -88,7 +87,6 @@ export default function InboxPage() {
 
     return (
         <div className="inbox-container inbox-page">
-            <BackButton />
             {!isMobile && <LeftSidebar defaultCollapsed={true} />}
             
             <div className="inbox-main-wrapper">

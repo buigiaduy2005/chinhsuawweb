@@ -3,7 +3,6 @@ import BottomNavigation from '../components/BottomNavigation';
 import LeftSidebar from '../components/LeftSidebar';
 import AttendancePage from './AttendancePage';
 import './StaffPage.css';
-import BackButton from '../components/BackButton';
  // Reusing StaffPage layout styles
 
 export default function SocialAttendancePage() {
@@ -17,11 +16,10 @@ export default function SocialAttendancePage() {
 
     return (
         <div className="staffPageContainer">
-            <BackButton />
             {!isMobile && <LeftSidebar />}
 
             <div className="staffMainWrapper" style={{ overflowY: 'auto', background: 'var(--color-bg)' }}>
-                <main style={{ padding: '20px', minHeight: 'calc(100vh - 60px)' }}>
+                <main style={{ padding: 0, minHeight: 'calc(100vh - 60px)' }}>
                     {/* Reuse the existing AttendancePage for content */}
                     <AttendancePage />
                 </main>

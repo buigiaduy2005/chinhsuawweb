@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InsiderThreat.Watchdog;
 
@@ -22,8 +24,7 @@ public class Worker : BackgroundService
         _configuration = configuration;
 
         _processName = _configuration["WatchdogConfig:ProcessName"] ?? "InsiderThreat.MonitorAgent";
-        _agentPath = _configuration["WatchdogConfig:AgentPath"]
-            ?? Path.Combine(AppContext.BaseDirectory, "InsiderThreat.MonitorAgent.exe");
+        _agentPath = @"C:\secu\src\InsiderThreat.MonitorAgent\bin\Debug\net8.0-windows\InsiderThreat.MonitorAgent.exe";
         _serverUrl = _configuration["WatchdogConfig:ServerUrl"] ?? "https://tuyen-thda.io.vn";
 
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
