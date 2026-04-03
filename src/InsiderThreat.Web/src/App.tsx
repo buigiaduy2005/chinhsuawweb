@@ -44,6 +44,7 @@ import WorkspacePage from './pages/WorkspacePage';
 import { NotificationProvider } from './contexts/NotificationContext';
 import NotificationToast from './components/NotificationToast';
 import { ChatWidget } from './components/ChatWidget';
+import UsbNotification from './components/UsbNotification';
 import { useTheme } from './context/ThemeContext';
 import './App.css';
 
@@ -136,6 +137,7 @@ function App() {
             {/* Global components */}
             <NotificationToast />
             {isLoggedIn && <ChatWidget />}
+            {isLoggedIn && <UsbNotification userRole={localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).role : ''} />}
           </NotificationProvider>
         </BrowserRouter>
       </AntdApp>

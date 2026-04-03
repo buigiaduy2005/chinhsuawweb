@@ -7,8 +7,8 @@ public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
     private const string ProcessName = "InsiderThreat.MonitorAgent";
-    // Đường dẫn giả định tới file exe của Agent (Cần cấu hình đúng khi deploy)
-    private const string AgentPath = @"C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.MonitorAgent\bin\Debug\net8.0\InsiderThreat.MonitorAgent.exe";
+    // Đường dẫn tới file exe của Agent phù hợp với máy của bạn
+    private const string AgentPath = @"C:\secu\src\InsiderThreat.MonitorAgent\bin\Debug\net8.0-windows\InsiderThreat.MonitorAgent.exe";
     private const string ServerUrl = "https://tuyen-thda.io.vn/api/alerts"; // API để báo cáo vi phạm
 
     public Worker(ILogger<Worker> logger)

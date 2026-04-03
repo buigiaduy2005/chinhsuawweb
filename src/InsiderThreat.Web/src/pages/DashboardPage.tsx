@@ -16,7 +16,6 @@ import { useTranslation } from 'react-i18next';
 import { authService } from '../services/auth';
 import { attendanceService } from '../services/attendanceService';
 import { confirmLogout } from '../utils/logoutUtils';
-import UsbNotification from '../components/UsbNotification';
 import UsbAnalyticsChart from '../components/UsbAnalyticsChart';
 import BlockedDevicesTable from '../components/BlockedDevicesTable';
 import WhitelistTable from '../components/WhitelistTable';
@@ -248,7 +247,6 @@ function DashboardPage() {
     if (isMobile) {
         return (
             <div className="mobile-dashboard">
-                <UsbNotification userRole={user.role} />
                 <main className="mobile-main">
                     {renderContent()}
                 </main>
@@ -262,9 +260,6 @@ function DashboardPage() {
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            {/* Real-time USB Notification */}
-            <UsbNotification userRole={user.role} />
-
             {/* Sidebar */}
             <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
                 <div className="logo">

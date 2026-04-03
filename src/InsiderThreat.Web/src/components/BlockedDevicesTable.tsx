@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Table, Button, message, Tag, Space } from 'antd';
-import { CheckOutlined, UsbOutlined } from '@ant-design/icons';
-import { api } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { Table, Button, message, Tag, Space, Badge } from 'antd';
+import { CheckOutlined, UsbOutlined, ReloadOutlined } from '@ant-design/icons';
+import * as signalR from '@microsoft/signalr';
+import { api, API_BASE_URL } from '../services/api';
 import type { LogEntry, Device } from '../types';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -16,30 +17,26 @@ interface BlockedDevice {
 function BlockedDevicesTable() {
     const [loading, setLoading] = useState(false);
     const [devices, setDevices] = useState<BlockedDevice[]>([]);
+    const connectionRef = useRef<signalR.HubConnection | null>(null);
 
     const fetchBlockedDevices = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Logs & Whitelist song song
             const [logs, whitelist] = await Promise.all([
-                api.get<LogEntry[]>('/api/logs?limit=100'), // Lấy nhiều log hơn để check
+                api.get<LogEntry[]>('/api/logs?limit=100'),
                 api.get<Device[]>('/api/devices')
             ]);
 
-            // Create Set of whitelisted Log DeviceIds (Clean format)
             const allowedDeviceIds = new Set(whitelist.map(d => d.deviceId.toUpperCase()));
 
-            // 2. Filter logs: Critical + Blocked AND Not in Whitelist
             const blockedLogs = logs
                 .filter((log) => log.severity === 'Critical' && log.actionTaken === 'Blocked')
                 .filter((log) => log.deviceId && log.deviceName)
                 .filter((log) => {
-                    // Check if current deviceId is in whitelist
                     if (!log.deviceId) return false;
                     return !allowedDeviceIds.has(log.deviceId.toUpperCase());
                 });
 
-            // 3. Deduplicate
             const uniqueDevices = new Map<string, BlockedDevice>();
             blockedLogs.forEach((log) => {
                 if (log.deviceId && !uniqueDevices.has(log.deviceId)) {
@@ -55,34 +52,78 @@ function BlockedDevicesTable() {
 
             setDevices(Array.from(uniqueDevices.values()));
         } catch (error) {
-            // message.error('Lỗi tải danh sách thiết bị bị chặn!');
             console.error('Error fetching blocked devices:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    // Kết nối SignalR để nhận thông báo real-time
+    useEffect(() => {
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${API_BASE_URL}/hubs/system`)
+            .configureLogging(signalR.LogLevel.Warning)
+            .build();
+
+        connection.start()
+            .then(() => {
+                console.log('✅ BlockedDevicesTable: SignalR connected');
+
+                // Khi có USB bị chặn mới → tự động thêm vào bảng
+                connection.on('UsbAlert', (data: any) => {
+                    console.log('🚨 USB Alert in table:', data);
+                    setDevices(prev => {
+                        const exists = prev.some(d => d.deviceId === data.deviceId);
+                        if (exists) return prev;
+                        return [{
+                            deviceId: data.deviceId,
+                            deviceName: data.deviceName,
+                            computerName: data.computerName,
+                            ipAddress: data.ipAddress,
+                            timestamp: data.timestamp,
+                        }, ...prev];
+                    });
+                    message.warning(`🚨 USB bị chặn: ${data.deviceName} trên ${data.computerName}`);
+                });
+
+                // Khi thiết bị được phê duyệt → xóa khỏi bảng
+                connection.on('DeviceApproved', (data: any) => {
+                    console.log('✅ Device approved:', data);
+                    setDevices(prev => prev.filter(d => d.deviceId.toUpperCase() !== data.deviceId?.toUpperCase()));
+                });
+            })
+            .catch(err => {
+                console.error('❌ SignalR error in BlockedDevicesTable:', err);
+            });
+
+        connectionRef.current = connection;
+
+        return () => {
+            connection.off('UsbAlert');
+            connection.off('DeviceApproved');
+            connection.stop();
+        };
+    }, []);
+
     useEffect(() => {
         fetchBlockedDevices();
-        // Auto-refresh mỗi 10 giây
-        const interval = setInterval(fetchBlockedDevices, 10000);
+        const interval = setInterval(fetchBlockedDevices, 15000);
         return () => clearInterval(interval);
     }, []);
 
     const handleApprove = async (device: BlockedDevice) => {
         try {
-            // Gọi API thêm vào whitelist
             await api.post<Device>('/api/devices', {
                 deviceId: device.deviceId,
                 deviceName: device.deviceName,
+                name: device.deviceName,
                 description: `Approved from ${device.computerName}`,
                 isAllowed: true,
             });
 
-            message.success(`Đã phê duyệt thiết bị: ${device.deviceName}`);
-
-            // Refresh list
-            fetchBlockedDevices();
+            message.success(`✅ Đã phê duyệt thiết bị: ${device.deviceName}`);
+            // Xóa khỏi danh sách ngay lập tức
+            setDevices(prev => prev.filter(d => d.deviceId !== device.deviceId));
         } catch (error: any) {
             message.error(error.response?.data?.message || 'Lỗi phê duyệt thiết bị!');
             console.error('Error approving device:', error);
@@ -106,7 +147,6 @@ function BlockedDevicesTable() {
             dataIndex: 'deviceId',
             key: 'deviceId',
             render: (deviceId: string) => {
-                // Extract VID and PID from deviceId
                 const vidMatch = deviceId.match(/VID_([0-9A-F]{4})/i);
                 const pidMatch = deviceId.match(/PID_([0-9A-F]{4})/i);
                 const vid = vidMatch ? vidMatch[1] : '????';
@@ -134,27 +174,40 @@ function BlockedDevicesTable() {
             title: 'Thao tác',
             key: 'action',
             render: (_: any, record: BlockedDevice) => (
-                <Button
-                    type="primary"
-                    icon={<CheckOutlined />}
-                    onClick={() => handleApprove(record)}
-                >
-                    Phê duyệt
-                </Button>
+                <Space>
+                    <Button
+                        type="primary"
+                        icon={<CheckOutlined />}
+                        onClick={() => handleApprove(record)}
+                    >
+                        Phê duyệt
+                    </Button>
+                </Space>
             ),
         },
     ];
 
     return (
-        <Table
-            columns={columns}
-            dataSource={devices}
-            rowKey="deviceId"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-            locale={{ emptyText: 'Không có thiết bị bị chặn' }}
-        />
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Badge count={devices.length} overflowCount={99}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>Thiết bị đang bị chặn</span>
+                </Badge>
+                <Button icon={<ReloadOutlined />} onClick={fetchBlockedDevices} loading={loading} size="small">
+                    Làm mới
+                </Button>
+            </div>
+            <Table
+                columns={columns}
+                dataSource={devices}
+                rowKey="deviceId"
+                loading={loading}
+                pagination={{ pageSize: 10 }}
+                locale={{ emptyText: 'Không có thiết bị bị chặn' }}
+            />
+        </div>
     );
 }
 
 export default BlockedDevicesTable;
+
