@@ -53,12 +53,19 @@ public class FileEncryptionService
         byte[] nonce = new byte[NonceSize];
         byte[] tag = new byte[TagSize];
 
-        await encryptedStream.ReadAsync(nonce, 0, NonceSize);
-        await encryptedStream.ReadAsync(tag, 0, TagSize);
+        await encryptedStream.ReadExactlyAsync(nonce, 0, NonceSize);
+        await encryptedStream.ReadExactlyAsync(tag, 0, TagSize);
 
         using var ms = new MemoryStream();
         await encryptedStream.CopyToAsync(ms);
         byte[] ciphertext = ms.ToArray();
+        
+        if (ciphertext.Length == 0)
+        {
+            // Empty file
+            return;
+        }
+
         byte[] plaintext = new byte[ciphertext.Length];
 
         using var aes = new AesGcm(_key, TagSize);

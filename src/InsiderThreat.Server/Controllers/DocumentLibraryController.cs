@@ -287,8 +287,19 @@ namespace InsiderThreat.Server.Controllers
                 using var encryptedStream = await _gridFS.OpenDownloadStreamAsync(fileId);
                 var outputStream = new MemoryStream();
 
-                // 🔓 GIẢI MÃ TRONG BỘ NHỚ (Military-grade decryption)
-                await _encryptionService.DecryptStreamAsync(encryptedStream, outputStream);
+                var fileInfo = await _gridFS.Find(Builders<GridFSFileInfo>.Filter.Eq("_id", fileId)).FirstOrDefaultAsync();
+                bool isEncrypted = fileInfo?.Metadata != null && fileInfo.Metadata.Contains("isEncrypted") && fileInfo.Metadata["isEncrypted"].AsBoolean;
+
+                if (isEncrypted)
+                {
+                    // 🔓 GIẢI MÃ TRONG BỘ NHỚ (Military-grade decryption)
+                    await _encryptionService.DecryptStreamAsync(encryptedStream, outputStream);
+                }
+                else
+                {
+                    await encryptedStream.CopyToAsync(outputStream);
+                }
+                
                 outputStream.Position = 0;
 
                 return File(outputStream, doc.ContentType, doc.FileName);

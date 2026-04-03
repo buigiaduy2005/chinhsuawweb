@@ -116,7 +116,10 @@ namespace InsiderThreat.Server.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 
                 var filterBuilder = Builders<Group>.Filter;
-                var isMember = filterBuilder.Where(g => g.MemberIds.Contains(userId!));
+                var isMember = filterBuilder.Or(
+                    filterBuilder.Where(g => g.MemberIds.Contains(userId!)),
+                    filterBuilder.Where(g => g.AdminIds.Contains(userId!))
+                );
                 var isPublicGroup = filterBuilder.And(
                     filterBuilder.Where(g => g.Privacy.ToLower() == "public"),
                     filterBuilder.Eq(g => g.IsProject, false)
@@ -167,14 +170,20 @@ namespace InsiderThreat.Server.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+                var memberIds = request.MemberIds ?? new List<string>();
+                if (!memberIds.Contains(userId!))
+                {
+                    memberIds.Add(userId!);
+                }
+
                 var group = new Group
                 {
                     Name = request.Name,
                     Description = request.Description,
                     Type = request.Type ?? "Project",
                     Privacy = request.Privacy ?? "Public",
-                    AdminIds = new List<string> { userId },
-                    MemberIds = request.MemberIds ?? new List<string> { userId },
+                    AdminIds = new List<string> { userId! },
+                    MemberIds = memberIds,
                     IsProject = request.IsProject,
                     Status = request.Status ?? "New",
                     ProjectStartDate = request.ProjectStartDate,
