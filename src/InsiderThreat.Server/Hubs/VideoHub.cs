@@ -13,10 +13,12 @@ public class VideoHub : Hub
 
     public async Task<string> CreateRoom(bool requireApproval = false)
     {
-        var roomCode = GenerateRoomCode();
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
         var displayName = Context.User?.FindFirst("FullName")?.Value ?? Context.User?.Identity?.Name ?? "Guest";
 
+        // Kiểm tra xem user này đã có phòng nào chưa hoặc tạo mã mới
+        string roomCode = GenerateRoomCode();
+        
         var room = new VideoRoom
         {
             RoomCode = roomCode,
@@ -67,6 +69,25 @@ public class VideoHub : Hub
             DisplayName = displayName
         };
 
+        // Nếu là host (reconnect), cho vào thẳng
+        if (room.HostConnectionId == Context.ConnectionId || room.Participants.ContainsKey(Context.ConnectionId))
+        {
+            room.Participants.TryAdd(Context.ConnectionId, participant);
+            _connectionToRoom.TryAdd(Context.ConnectionId, roomCode);
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+            await Clients.Caller.SendAsync("JoinApproved", room.Participants.Values.Where(p => p.ConnectionId != Context.ConnectionId).ToList());
+            
+            // Nếu là host, gửi thêm danh sách đang chờ
+            if (room.HostConnectionId == Context.ConnectionId)
+            {
+                foreach (var waiting in room.WaitingParticipants.Values)
+                {
+                    await Clients.Caller.SendAsync("ParticipantWaiting", waiting);
+                }
+            }
+            return;
+        }
+
         // Nếu phòng không yêu cầu duyệt, cho vào thẳng
         if (!room.RequireApproval)
         {
@@ -79,6 +100,7 @@ public class VideoHub : Hub
             return;
         }
 
+        // Thêm vào hàng chờ
         room.WaitingParticipants.TryAdd(Context.ConnectionId, participant);
 
         // Thông báo cho host

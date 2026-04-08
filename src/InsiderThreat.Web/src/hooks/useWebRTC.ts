@@ -371,39 +371,53 @@ export function useWebRTC() {
 
         // Đăng ký handler JoinApproved trước khi gửi request
         const approvalPromise = new Promise<Array<{ connectionId: string; displayName: string }>>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Yêu cầu vào phòng hết thời gian')), 120000);
+            const timeout = setTimeout(() => {
+                conn.off('JoinApproved');
+                conn.off('JoinRejected');
+                reject(new Error('Yêu cầu vào phòng hết thời gian'));
+            }, 120000);
+
             conn.on('JoinApproved', (existingParticipants: Array<{ connectionId: string; displayName: string }>) => {
                 clearTimeout(timeout);
                 conn.off('JoinApproved');
+                conn.off('JoinRejected');
                 resolve(existingParticipants);
             });
+
             conn.on('JoinRejected', () => {
                 clearTimeout(timeout);
+                conn.off('JoinApproved');
                 conn.off('JoinRejected');
                 reject(new Error('Yêu cầu vào phòng bị từ chối'));
             });
         });
 
+        console.log('[WebRTC] Requesting to join room:', code);
         await conn.invoke('RequestJoinRoom', code);
         // isWaiting được set bởi WaitingForApproval event trong setupSignalRHandlers
 
-        const existingParticipants = await approvalPromise;
-        setIsWaiting(false);
-        setRoomCode(code);
-        console.log('[WebRTC] Joined room:', code, 'Existing participants:', existingParticipants.length);
+        try {
+            const existingParticipants = await approvalPromise;
+            setIsWaiting(false);
+            setRoomCode(code);
+            console.log('[WebRTC] Joined room:', code, 'Existing participants:', existingParticipants.length);
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-        for (const participant of existingParticipants) {
-            try {
-                const pc = createPeerConnection(participant.connectionId, participant.displayName);
-                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-                await pc.setLocalDescription(offer);
-                await conn.invoke('SendOffer', participant.connectionId, JSON.stringify(pc.localDescription));
-                console.log('[WebRTC] Sent offer to:', participant.displayName);
-            } catch (err) {
-                console.error('[WebRTC] Error creating offer for', participant.displayName, err);
+            for (const participant of existingParticipants) {
+                try {
+                    const pc = createPeerConnection(participant.connectionId, participant.displayName);
+                    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+                    await pc.setLocalDescription(offer);
+                    await conn.invoke('SendOffer', participant.connectionId, JSON.stringify(pc.localDescription));
+                    console.log('[WebRTC] Sent offer to:', participant.displayName);
+                } catch (err) {
+                    console.error('[WebRTC] Error creating offer for', participant.displayName, err);
+                }
             }
+        } catch (err) {
+            setIsWaiting(false);
+            throw err;
         }
     }, [getMediaStream, connectSignalR, createPeerConnection]);
 
