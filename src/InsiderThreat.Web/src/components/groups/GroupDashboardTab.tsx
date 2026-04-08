@@ -14,7 +14,9 @@ import {
 import { api } from '../../services/api';
 import { authService } from '../../services/auth';
 import TaskDetailDrawer from './TaskDetailDrawer';
+import ProjectMobileTabs from './ProjectMobileTabs';
 import './GroupDashboardTab.css';
+import './ProjectMobileTabs.css';
 
 dayjs.extend(relativeTime);
 
@@ -53,9 +55,11 @@ interface GroupInfo {
 
 interface GroupDashboardTabProps {
     onInviteClick?: () => void;
+    activeTab?: string;
+    onTabChange?: (key: string) => void;
 }
 
-export default function GroupDashboardTab({ onInviteClick }: GroupDashboardTabProps = {}) {
+export default function GroupDashboardTab({ onInviteClick, activeTab, onTabChange }: GroupDashboardTabProps = {}) {
     const { id: groupId } = useParams<{ id: string }>();
     const { t } = useTranslation();
     const { message } = App.useApp();
@@ -224,6 +228,11 @@ export default function GroupDashboardTab({ onInviteClick }: GroupDashboardTabPr
                     </Button>
                 </div>
             </div>
+
+            {/* Mobile Tabs Relocated Below Search Bar */}
+            {activeTab && onTabChange && (
+                <ProjectMobileTabs activeTab={activeTab} onTabChange={onTabChange} />
+            )}
 
             {/* Top Stat Cards */}
             <div className="stats-grid">

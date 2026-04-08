@@ -8,18 +8,29 @@
     align-items: flex-end;
 }
 
-.floatingButton {
+.floatingButtonWrap {
     width: 56px;
     height: 56px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.floatingButtonWrap:active {
+    cursor: grabbing;
+}
+
+.floatingButton {
+    width: 100%;
+    height: 100%;
+    background: #2563eb;
+    border-radius: 50%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.floatingButton:hover {
-    transform: scale(1.1);
 }
 
 .chatWindow {
@@ -31,6 +42,7 @@
     animation: slideIn 0.3s ease-out;
     border-radius: 16px;
     overflow: hidden;
+    background: #fff;
 }
 
 @keyframes slideIn {
@@ -49,6 +61,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 16px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
 }
 
 .headerTitle {
@@ -75,7 +91,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: 380px;
 }
 
 .messageItem {
@@ -140,6 +155,7 @@
     padding: 16px;
     background-color: #ffffff;
     border-top: 1px solid #f1f5f9;
+    flex-shrink: 0;
 }
 
 .avatar {

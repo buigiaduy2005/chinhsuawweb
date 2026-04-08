@@ -11,6 +11,7 @@ import { api } from '../services/api';
 import SynchroHeader from '../components/SynchroHeader';
 import './GroupDetailPage.css';
 
+
 const TABS = [
     { key: 'dashboard', label: 'project_detail.tabs.dashboard', icon: 'dashboard' },
     { key: 'mytask', label: 'project_detail.tabs.mytasks', icon: 'task_alt' },

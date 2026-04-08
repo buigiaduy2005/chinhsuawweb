@@ -34,12 +34,12 @@ ${StrLoc}
 !define VERSIONWITHBUILD "0.1.0.0"
 !define HOMEPAGE ""
 !define INSTALLMODE "currentUser"
-!define LICENSE ""
+!define LICENSE "c:\secu\src\InsiderThreat.Web\src-tauri\license.txt"
 !define INSTALLERICON ""
 !define SIDEBARIMAGE ""
 !define HEADERIMAGE ""
 !define MAINBINARYNAME "app"
-!define MAINBINARYSRCPATH "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\target\release\app.exe"
+!define MAINBINARYSRCPATH "c:\secu\src\InsiderThreat.Web\src-tauri\target\release\app.exe"
 !define BUNDLEID "com.insiderthreat.app"
 !define COPYRIGHT ""
 !define OUTFILE "nsis-output.exe"
@@ -480,7 +480,7 @@ UninstPage custom un.RequirePassword un.RequirePasswordLeave
 ;Languages
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
-  !include "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\target\release\nsis\x64\English.nsh"
+  !include "c:\secu\src\InsiderThreat.Web\src-tauri\target\release\nsis\x64\English.nsh"
 
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode
@@ -657,9 +657,7 @@ Section Install
 
   ; Copy resources
 
-  ; Copy external binaries
-    File /a "/oname=InsiderThreat.ClientAgent.exe" "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\bin\InsiderThreat.ClientAgent-x86_64-pc-windows-msvc.exe"
-    File /a "/oname=InsiderThreat.Server.exe" "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\bin\InsiderThreat.Server-x86_64-pc-windows-msvc.exe"
+  ; Copy external binaries - handled by Tauri resources
 
   ; Create file associations
 
@@ -777,6 +775,8 @@ Section Uninstall
   DetailPrint "Stopping Background Services..."
   nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.Server.exe'
   nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.ClientAgent.exe'
+  nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.MonitorAgent.exe'
+  nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.Watchdog.exe'
   nsExec::ExecToLog 'taskkill /F /IM app.exe'
 
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
@@ -787,9 +787,7 @@ Section Uninstall
 
   ; Delete resources
 
-  ; Delete external binaries
-    Delete "$INSTDIR\InsiderThreat.ClientAgent.exe"
-    Delete "$INSTDIR\InsiderThreat.Server.exe"
+  ; Delete external binaries - handled by Tauri resources cleanup
 
   ; Delete app associations
 

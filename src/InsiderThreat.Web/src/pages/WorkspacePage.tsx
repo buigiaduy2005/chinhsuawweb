@@ -28,15 +28,19 @@ import NavigationBar from '../components/NavigationBar';
 import LeftSidebar from '../components/LeftSidebar';
 import BottomNavigation from '../components/BottomNavigation';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 import './WorkspacePage.css';
+
 
 dayjs.extend(relativeTime);
 
 export default function WorkspacePage() {
     const { t } = useTranslation();
     const { message } = App.useApp();
-    const [currentUser, setCurrentUser] = useState<any>(authService.getCurrentUser());
+    const { theme } = useTheme();
+    const isDarkMode = theme === 'dark';
     const navigate = useNavigate();
+    const [currentUser, setCurrentUser] = useState<any>(authService.getCurrentUser());
 
     // Listen to user profile updates
     useEffect(() => {
@@ -74,6 +78,11 @@ export default function WorkspacePage() {
     const [reminders, setReminders] = useState<PersonalReminder[]>([]);
     const [isAddReminderVisible, setIsAddReminderVisible] = useState(false);
     const [reminderForm] = Form.useForm();
+
+    // Day Events Modal State
+    const [isDayEventsModalVisible, setIsDayEventsModalVisible] = useState(false);
+    const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
+    const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
 
     // Load initial reminders
     useEffect(() => {
@@ -203,6 +212,24 @@ export default function WorkspacePage() {
             const dateTasks = stats?.Tasks?.filter((t: any) => t.deadline && dayjs(t.deadline).isSame(current, 'day')) || [];
             const dateReminders = reminders.filter(r => dayjs(r.date).isSame(current, 'day'));
             
+            // Project Level Events
+            const projectEvents: any[] = [];
+            stats?.UserGroups?.forEach((g: any) => {
+                if (g.isProject) {
+                    if (g.projectStartDate && dayjs(g.projectStartDate).isSame(current, 'day')) {
+                        projectEvents.push({ type: 'start', name: g.name, id: g.id });
+                    }
+                    if (g.projectEndDate && dayjs(g.projectEndDate).isSame(current, 'day')) {
+                        projectEvents.push({ type: 'end', name: g.name, id: g.id });
+                    }
+                    g.milestones?.forEach((m: any) => {
+                        if (m.date && dayjs(m.date).isSame(current, 'day')) {
+                            projectEvents.push({ type: 'milestone', name: m.name, projectName: g.name, id: g.id });
+                        }
+                    });
+                }
+            });
+
             return (
                 <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
                     {dateTasks.map((item: any) => (
@@ -212,6 +239,23 @@ export default function WorkspacePage() {
                             onClick={(e) => { e.stopPropagation(); navigate(`/groups/${item.groupId}?tab=mytask`); }}
                         >
                             <RocketOutlined style={{ marginRight: '4px' }}/>{item.title}
+                        </div>
+                    ))}
+                    {projectEvents.map((ev: any, idx: number) => (
+                        <div 
+                            key={`project-ev-${ev.id}-${idx}`}
+                            style={{ 
+                                fontSize: '10px', padding: '2px 4px', borderRadius: '4px', 
+                                background: ev.type === 'milestone' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
+                                color: ev.type === 'milestone' ? '#ef4444' : '#10b981', 
+                                marginBottom: '2px', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                borderLeft: `2px solid ${ev.type === 'milestone' ? '#ef4444' : '#10b981'}`
+                            }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/groups/${ev.id}`); }}
+                        >
+                            {ev.type === 'start' && `🚀 START: ${ev.name}`}
+                            {ev.type === 'end' && `🏁 END: ${ev.name}`}
+                            {ev.type === 'milestone' && `🚩 ${ev.name}`}
                         </div>
                     ))}
                     {dateReminders.map((item) => (
@@ -229,10 +273,45 @@ export default function WorkspacePage() {
         return info.originNode;
     };
 
+    const handleDateSelect = (date: dayjs.Dayjs) => {
+        // Collect all events for the selected date
+        const dateTasks = stats?.Tasks?.filter((t: any) => t.deadline && dayjs(t.deadline).isSame(date, 'day')) || [];
+        const dateReminders = reminders.filter(r => dayjs(r.date).isSame(date, 'day'));
+        const projectEvents: any[] = [];
+        
+        stats?.UserGroups?.forEach((g: any) => {
+            if (g.isProject) {
+                if (g.projectStartDate && dayjs(g.projectStartDate).isSame(date, 'day')) {
+                    projectEvents.push({ type: 'start', name: g.name, id: g.id });
+                }
+                if (g.projectEndDate && dayjs(g.projectEndDate).isSame(date, 'day')) {
+                    projectEvents.push({ type: 'end', name: g.name, id: g.id });
+                }
+                g.milestones?.forEach((m: any) => {
+                    if (m.date && dayjs(m.date).isSame(date, 'day')) {
+                        projectEvents.push({ type: 'milestone', name: m.name, projectName: g.name, id: g.id });
+                    }
+                });
+            }
+        });
+
+        const allEvents = [
+            ...dateTasks.map((t: any) => ({ ...t, eventType: 'task' })),
+            ...projectEvents.map((p: any) => ({ ...p, eventType: 'project' })),
+            ...dateReminders.map((r: any) => ({ ...r, eventType: 'reminder' }))
+        ];
+
+        if (allEvents.length > 0) {
+            setSelectedDate(date);
+            setSelectedDayEvents(allEvents);
+            setIsDayEventsModalVisible(true);
+        }
+    };
+
     if (loading || !stats) {
         return (
             <div className="workspace-layout-wrapper">
-                <NavigationBar />
+                <NavigationBar hideSearch={true} />
                 <div className="flex flex-1 items-center justify-center">
                     <Spin size="large" />
                 </div>
@@ -242,7 +321,7 @@ export default function WorkspacePage() {
 
     return (
         <div className="workspace-layout-wrapper">
-            <NavigationBar />
+            <NavigationBar hideSearch={true} />
             
             <div className="social-layout">
                 <LeftSidebar />
@@ -256,8 +335,8 @@ export default function WorkspacePage() {
                                 <p className="text-blue-400 font-bold tracking-widest uppercase text-xs mb-2">Workspace Personal Command Center</p>
                                 <h1>{getGreeting()}, {currentUser?.fullName?.split(' ').pop()}! 👋</h1>
                                 <div className="quick-action-dock">
-                                    <div className="action-card-glass" onClick={() => navigate('/groups')}>
-                                        <RocketOutlined /> {t('workspace.btn_tasks', 'Nhiệm vụ')}
+                                    <div className="action-card-glass" onClick={() => navigate('/projects')}>
+                                        <RocketOutlined /> {t('workspace.btn_projects', 'Dự án')}
                                     </div>
                                     <div className="action-card-glass" onClick={() => navigate('/my-leave')}>
                                         <CalendarOutlined /> {t('workspace.btn_leave', 'Nghỉ phép')}
@@ -313,8 +392,8 @@ export default function WorkspacePage() {
                         {/* Task List Section */}
                         <div className="glass-panel fade-in-up" style={{ animationDelay: '0.5s' }}>
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold">Nhiệm vụ ưu tiên</h3>
-                                <Button type="link" icon={<ArrowRightOutlined />} onClick={() => navigate('/groups')}>Xem tất cả</Button>
+                                <h3 className="text-xl font-bold" style={{ color: isDarkMode ? '#ffffff' : 'inherit' }}>Nhiệm vụ ưu tiên</h3>
+                                <Button type="link" icon={<ArrowRightOutlined />} onClick={() => navigate('/groups')} className="dark:text-blue-400">Xem tất cả</Button>
                             </div>
                             
                             <div className="space-y-2">
@@ -324,15 +403,15 @@ export default function WorkspacePage() {
                                 {stats.tasks?.slice(0, 5).map((task: any) => (
                                     <div key={task.id} className="premium-list-item" onClick={() => navigate(`/groups/${task.groupId}?tab=mytask`)}>
                                         <div className="flex items-center gap-4">
-                                            <div className={`p-2 rounded-xl ${task.status === 'InProgress' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                            <div className={`p-2 rounded-xl ${task.status === 'InProgress' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                                 {task.status === 'InProgress' ? <PlayCircleOutlined /> : <ClockCircleOutlined />}
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-gray-800 dark:text-gray-100">{task.title}</div>
-                                                <div className="text-xs text-gray-400">{t('workspace.deadline', 'Hạn chót')}: {dayjs(task.deadline).format('DD MMM')}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold item-title truncate" style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>{task.title}</div>
+                                                <div className="text-xs item-deadline" style={{ color: isDarkMode ? '#94a3b8' : '#4b5563' }}>{t('workspace.deadline', 'Hạn chót')}: {dayjs(task.deadline).format('DD MMM')}</div>
                                             </div>
                                         </div>
-                                        <Tag color={task.status === 'InProgress' ? 'blue' : 'default'}>{task.status}</Tag>
+                                        <Tag color={task.status === 'InProgress' ? 'blue' : 'default'} style={{ fontWeight: '600' }}>{task.status}</Tag>
                                     </div>
                                 ))}
                             </div>
@@ -342,12 +421,22 @@ export default function WorkspacePage() {
                                 <div className="h-48">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={timelineData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                                            <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={12} />
-                                            <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={isDarkMode ? 0.05 : 0.1} />
+                                            <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={12} stroke={isDarkMode ? '#94a3b8' : '#64748b'} />
+                                            <YAxis axisLine={false} tickLine={false} fontSize={12} stroke={isDarkMode ? '#94a3b8' : '#64748b'} hide />
+                                            <RechartsTooltip 
+                                                cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }} 
+                                                contentStyle={{ 
+                                                    borderRadius: 12, 
+                                                    border: 'none', 
+                                                    boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
+                                                    background: isDarkMode ? '#1e293b' : '#ffffff',
+                                                    color: isDarkMode ? '#f1f5f9' : '#0f172a'
+                                                }} 
+                                            />
                                             <Bar dataKey="tasks" radius={[4, 4, 0, 0]}>
                                                 {timelineData.map((d: any, i: number) => (
-                                                    <Cell key={i} fill={d.isToday ? '#3b82f6' : '#cbd5e1'} />
+                                                    <Cell key={i} fill={d.isToday ? '#3b82f6' : (isDarkMode ? '#334155' : '#cbd5e1')} />
                                                 ))}
                                             </Bar>
                                         </BarChart>
@@ -417,7 +506,7 @@ export default function WorkspacePage() {
                             </Button>
                         </div>
                         <div className="calendar-container premium-calendar">
-                            <Calendar cellRender={calendarCellRender} />
+                            <Calendar cellRender={calendarCellRender} onSelect={handleDateSelect} />
                         </div>
                     </div>
                 </div>
@@ -441,13 +530,97 @@ export default function WorkspacePage() {
                         <Input placeholder="Ví dụ: Kiểm tra tiến độ dự án Alpha..." />
                     </Form.Item>
                     <Form.Item name="dateTime" label="Thời gian nhắc" rules={[{ required: true, message: 'Chọn thời gian' }]}>
-                        <DatePicker showTime format="DD/MM/YYYY HH:mm" className="w-full" size="large" />
+                        <DatePicker 
+                            showTime 
+                            format="DD/MM/YYYY HH:mm" 
+                            className="w-full" 
+                            size="large" 
+                            inputReadOnly 
+                            popupClassName="mobile-date-picker-popup"
+                        />
                     </Form.Item>
                     <Form.Item className="mt-6 mb-0 text-right">
                         <Button onClick={() => setIsAddReminderVisible(false)} className="mr-3">Hủy</Button>
                         <Button type="primary" htmlType="submit">Lưu Nhắc Nhở</Button>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* Day Events Modal */}
+            <Modal
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <CalendarOutlined style={{ color: '#3b82f6' }} />
+                        <span>Lịch trình ngày {selectedDate?.format('DD/MM/YYYY')}</span>
+                    </div>
+                }
+                open={isDayEventsModalVisible}
+                onCancel={() => setIsDayEventsModalVisible(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setIsDayEventsModalVisible(false)}>
+                        Đóng
+                    </Button>
+                ]}
+                centered
+                width={500}
+                className="day-events-modal"
+            >
+                <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '4px' }}>
+                    {selectedDayEvents.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+                            Không có sự kiện nào trong ngày này.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {selectedDayEvents.map((ev, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className="event-detail-item"
+                                    style={{ 
+                                        padding: '12px', 
+                                        borderRadius: '12px', 
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        cursor: ev.eventType !== 'reminder' ? 'pointer' : 'default',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onClick={() => {
+                                        if (ev.eventType === 'task') navigate(`/groups/${ev.groupId}?tab=mytask`);
+                                        if (ev.eventType === 'project') navigate(`/groups/${ev.id}`);
+                                    }}
+                                >
+                                    <div style={{ 
+                                        width: '40px', height: '40px', borderRadius: '10px', 
+                                        display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center',
+                                        background: ev.eventType === 'task' ? 'rgba(59, 130, 246, 0.1)' : 
+                                                   ev.eventType === 'project' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(168, 85, 247, 0.1)',
+                                        color: ev.eventType === 'task' ? '#3b82f6' : 
+                                               ev.eventType === 'project' ? '#10b981' : '#a855f7'
+                                    }}>
+                                        {ev.eventType === 'task' && <RocketOutlined />}
+                                        {ev.eventType === 'project' && <RocketOutlined />}
+                                        {ev.eventType === 'reminder' && <BellOutlined />}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: '600', color: '#1e293b' }}>
+                                            {ev.eventType === 'project' && ev.type === 'milestone' ? `Cột mốc: ${ev.name}` : 
+                                             ev.eventType === 'project' ? `${ev.type.toUpperCase()}: ${ev.name}` : ev.title}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                                            {ev.eventType === 'task' && `Nhiệm vụ trong dự án`}
+                                            {ev.eventType === 'project' && `Dự án quan trọng`}
+                                            {ev.eventType === 'reminder' && `Nhắc nhở cá nhân lúc ${dayjs(ev.date).format('HH:mm')}`}
+                                        </div>
+                                    </div>
+                                    <div style={{ color: '#94a3b8' }}>
+                                        <ArrowRightOutlined />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );

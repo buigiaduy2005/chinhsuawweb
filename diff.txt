@@ -1,0 +1,385 @@
+﻿diff --git a/src/InsiderThreat.Web/.env.production b/src/InsiderThreat.Web/.env.production
+index 4f4c0a1..eaad7c4 100644
+--- a/src/InsiderThreat.Web/.env.production
++++ b/src/InsiderThreat.Web/.env.production
+@@ -1,2 +1,2 @@
+-# Production environment - Local Sidecar Backend
++# Production environment - Remote Server
+ VITE_API_BASE_URL=https://tuyen-thda.io.vn
+diff --git a/src/InsiderThreat.Web/src-tauri/installer.nsi b/src/InsiderThreat.Web/src-tauri/installer.nsi
+index fc822d8..1674658 100644
+--- a/src/InsiderThreat.Web/src-tauri/installer.nsi
++++ b/src/InsiderThreat.Web/src-tauri/installer.nsi
+@@ -34,12 +34,12 @@ ${StrLoc}
+ !define VERSIONWITHBUILD "0.1.0.0"
+ !define HOMEPAGE ""
+ !define INSTALLMODE "currentUser"
+-!define LICENSE ""
++!define LICENSE "c:\secu\src\InsiderThreat.Web\src-tauri\license.txt"
+ !define INSTALLERICON ""
+ !define SIDEBARIMAGE ""
+ !define HEADERIMAGE ""
+ !define MAINBINARYNAME "app"
+-!define MAINBINARYSRCPATH "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\target\release\app.exe"
++!define MAINBINARYSRCPATH "c:\secu\src\InsiderThreat.Web\src-tauri\target\release\app.exe"
+ !define BUNDLEID "com.insiderthreat.app"
+ !define COPYRIGHT ""
+ !define OUTFILE "nsis-output.exe"
+@@ -480,7 +480,7 @@ UninstPage custom un.RequirePassword un.RequirePasswordLeave
+ ;Languages
+ !insertmacro MUI_LANGUAGE "English"
+ !insertmacro MUI_RESERVEFILE_LANGDLL
+-  !include "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\target\release\nsis\x64\English.nsh"
++  !include "c:\secu\src\InsiderThreat.Web\src-tauri\target\release\nsis\x64\English.nsh"
+ 
+ Function .onInit
+   ${GetOptions} $CMDLINE "/P" $PassiveMode
+@@ -657,9 +657,7 @@ Section Install
+ 
+   ; Copy resources
+ 
+-  ; Copy external binaries
+-    File /a "/oname=InsiderThreat.ClientAgent.exe" "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\bin\InsiderThreat.ClientAgent-x86_64-pc-windows-msvc.exe"
+-    File /a "/oname=InsiderThreat.Server.exe" "C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Web\src-tauri\bin\InsiderThreat.Server-x86_64-pc-windows-msvc.exe"
++  ; Copy external binaries - handled by Tauri resources
+ 
+   ; Create file associations
+ 
+@@ -777,6 +775,8 @@ Section Uninstall
+   DetailPrint "Stopping Background Services..."
+   nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.Server.exe'
+   nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.ClientAgent.exe'
++  nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.MonitorAgent.exe'
++  nsExec::ExecToLog 'taskkill /F /IM InsiderThreat.Watchdog.exe'
+   nsExec::ExecToLog 'taskkill /F /IM app.exe'
+ 
+   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+@@ -787,9 +787,7 @@ Section Uninstall
+ 
+   ; Delete resources
+ 
+-  ; Delete external binaries
+-    Delete "$INSTDIR\InsiderThreat.ClientAgent.exe"
+-    Delete "$INSTDIR\InsiderThreat.Server.exe"
++  ; Delete external binaries - handled by Tauri resources cleanup
+ 
+   ; Delete app associations
+ 
+diff --git a/src/InsiderThreat.Web/src-tauri/src/lib.rs b/src/InsiderThreat.Web/src-tauri/src/lib.rs
+index c06ebb8..f1de940 100644
+--- a/src/InsiderThreat.Web/src-tauri/src/lib.rs
++++ b/src/InsiderThreat.Web/src-tauri/src/lib.rs
+@@ -9,18 +9,24 @@ pub fn run() {
+     .setup(|app| {
+       use tauri_plugin_shell::ShellExt;
+       use tauri_plugin_autostart::ManagerExt;
++      use tauri::Manager;
+ 
+       // Enable autostart automatically
+       let _ = app.autolaunch().enable();
+ 
+-      // K├¡ch hoß║ít Backend .NET ngß║ºm
+-      if let Ok(sidecar) = app.shell().sidecar("InsiderThreat.Server") {
+-          let _ = sidecar.spawn();
+-      }
++      use std::process::Command;
++      use std::os::windows::process::CommandExt;
++      const CREATE_NO_WINDOW: u32 = 0x08000000;
++
++      // Khß╗ƒi ─æß╗Öng c├íc Agent ngß║ºm tß╗½ resources folder
++      if let Ok(resource_path) = app.path().resource_dir() {
++        let client = resource_path.join("InsiderThreat.ClientAgent.exe");
++        let monitor = resource_path.join("InsiderThreat.MonitorAgent.exe");
++        let watchdog = resource_path.join("InsiderThreat.Watchdog.exe");
+ 
+-      // K├¡ch hoß║ít USB Blocker ngß║ºm
+-      if let Ok(sidecar) = app.shell().sidecar("InsiderThreat.ClientAgent") {
+-          let _ = sidecar.spawn();
++        if client.exists() { let _ = Command::new(&client).creation_flags(CREATE_NO_WINDOW).spawn(); }
++        if monitor.exists() { let _ = Command::new(&monitor).creation_flags(CREATE_NO_WINDOW).spawn(); }
++        if watchdog.exists() { let _ = Command::new(&watchdog).creation_flags(CREATE_NO_WINDOW).spawn(); }
+       }
+ 
+       if cfg!(debug_assertions) {
+diff --git a/src/InsiderThreat.Web/src-tauri/tauri.conf.json b/src/InsiderThreat.Web/src-tauri/tauri.conf.json
+index 94058e8..935eed0 100644
+--- a/src/InsiderThreat.Web/src-tauri/tauri.conf.json
++++ b/src/InsiderThreat.Web/src-tauri/tauri.conf.json
+@@ -31,16 +31,15 @@
+         "template": "installer.nsi"
+       }
+     },
+-    "externalBin": [
+-      "bin/InsiderThreat.Server",
+-      "bin/InsiderThreat.ClientAgent"
+-    ],
+     "icon": [
+       "icons/32x32.png",
+       "icons/128x128.png",
+       "icons/128x128@2x.png",
+       "icons/icon.icns",
+       "icons/icon.ico"
++    ],
++    "resources": [
++      "resources/*"
+     ]
+   }
+ }
+diff --git a/src/InsiderThreat.Web/src/components/MonitorNotification.tsx b/src/InsiderThreat.Web/src/components/MonitorNotification.tsx
+index a024ab8..ebbc5bb 100644
+--- a/src/InsiderThreat.Web/src/components/MonitorNotification.tsx
++++ b/src/InsiderThreat.Web/src/components/MonitorNotification.tsx
+@@ -42,6 +42,9 @@ function MonitorNotification({ userRole }: MonitorNotificationProps) {
+     useEffect(() => {
+         if (userRole !== 'Admin') return;
+ 
++        // Flag ─æß╗â tr├ính lß╗ùi React StrictMode double-mount
++        let cancelled = false;
++
+         const token = localStorage.getItem('token');
+         const connection = new signalR.HubConnectionBuilder()
+             .withUrl(`${API_BASE_URL}/hubs/system`, token ? { accessTokenFactory: () => token } : {})
+@@ -49,74 +52,93 @@ function MonitorNotification({ userRole }: MonitorNotificationProps) {
+             .configureLogging(signalR.LogLevel.Warning)
+             .build();
+ 
+-        connection.start()
+-            .then(() => {
+-                connection.on('MonitorAlert', (alert: MonitorAlert) => {
+-                    const cfg = LOG_TYPE_CONFIG[alert.logType] ?? {
+-                        icon: <WarningOutlined />,
+-                        color: '#cf1322',
+-                        label: `ΓÜá∩╕Å ${alert.logType}`,
+-                    };
+-
+-                    const isCritical = alert.severityScore >= 8 ||
+-                        alert.logType === 'DocumentLeak' ||
+-                        alert.logType === 'FaceIDSpoofAttempt';
+-
+-                    if (isCritical) {
+-                        // Modal cho c├íc cß║únh b├ío cß╗▒c kß╗│ nghi├¬m trß╗ìng
+-                        Modal.warning({
+-                            title: (
+-                                <Space>
+-                                    <span style={{ color: cfg.color }}>{cfg.icon}</span>
+-                                    <span style={{ color: cfg.color }}>{cfg.label}</span>
+-                                </Space>
+-                            ),
+-                            content: (
+-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+-                                    <div><Text strong>M├íy t├¡nh:</Text> <Text code>{alert.computerName}</Text></div>
+-                                    {alert.computerUser && <div><Text strong>User:</Text> <Text>{alert.computerUser}</Text></div>}
+-                                    <div><Text strong>IP:</Text> <Text>{alert.ipAddress}</Text></div>
+-                                    {alert.applicationName && <div><Text strong>ß╗¿ng dß╗Ñng:</Text> <Tag color="orange">{alert.applicationName}</Tag></div>}
+-                                    {alert.detectedKeyword && <div><Text strong>Tß╗½ kh├│a:</Text> <Tag color="red">{alert.detectedKeyword}</Tag></div>}
+-                                    {alert.messageContext && (
+-                                        <div style={{ background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: 6, padding: '8px 12px', marginTop: 4, maxHeight: 80, overflowY: 'auto' }}>
+-                                            <Text style={{ fontSize: 12 }}>{alert.messageContext}</Text>
+-                                        </div>
+-                                    )}
+-                                    <div><Text strong>Thß╗¥i gian:</Text> <Text>{new Date(alert.timestamp).toLocaleString('vi-VN')}</Text></div>
+-                                </Space>
+-                            ),
+-                            width: 500,
+-                            okText: '─É├ú xem',
+-                        });
+-                    } else {
+-                        // Toast notification cho c├íc cß║únh b├ío trung b├¼nh
+-                        notifApi.warning({
+-                            message: cfg.label,
+-                            description: (
+-                                <Space direction="vertical" size={2}>
+-                                    <Text>
+-                                        <Text strong>{alert.computerName}</Text>
+-                                        {alert.computerUser ? ` (${alert.computerUser})` : ''}
+-                                    </Text>
+-                                    {alert.applicationName && <Text type="secondary">App: {alert.applicationName}</Text>}
+-                                    {alert.detectedKeyword && <Tag color="orange" style={{ marginTop: 2 }}>{alert.detectedKeyword}</Tag>}
+-                                </Space>
+-                            ),
+-                            icon: <span style={{ color: cfg.color }}>{cfg.icon}</span>,
+-                            duration: 8,
+-                            placement: 'topRight',
+-                        });
+-                    }
++        // ─É─âng k├╜ listener TR╞»ß╗ÜC khi start ─æß╗â kh├┤ng bß╗ï mß║Ñt event
++        connection.on('MonitorAlert', (alert: MonitorAlert) => {
++            if (cancelled) return;
++
++            const cfg = LOG_TYPE_CONFIG[alert.logType] ?? {
++                icon: <WarningOutlined />,
++                color: '#cf1322',
++                label: `ΓÜá∩╕Å ${alert.logType}`,
++            };
++
++            const isCritical = alert.severityScore >= 8 ||
++                alert.logType === 'DocumentLeak' ||
++                alert.logType === 'FaceIDSpoofAttempt';
++
++            if (isCritical) {
++                Modal.warning({
++                    title: (
++                        <Space>
++                            <span style={{ color: cfg.color }}>{cfg.icon}</span>
++                            <span style={{ color: cfg.color }}>{cfg.label}</span>
++                        </Space>
++                    ),
++                    content: (
++                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
++                            <div><Text strong>M├íy t├¡nh:</Text> <Text code>{alert.computerName}</Text></div>
++                            {alert.computerUser && <div><Text strong>User:</Text> <Text>{alert.computerUser}</Text></div>}
++                            <div><Text strong>IP:</Text> <Text>{alert.ipAddress}</Text></div>
++                            {alert.applicationName && <div><Text strong>ß╗¿ng dß╗Ñng:</Text> <Tag color="orange">{alert.applicationName}</Tag></div>}
++                            {alert.detectedKeyword && <div><Text strong>Tß╗½ kh├│a:</Text> <Tag color="red">{alert.detectedKeyword}</Tag></div>}
++                            {alert.messageContext && (
++                                <div style={{ background: '#fff1f0', border: '1px solid #ffa39e', borderRadius: 6, padding: '8px 12px', marginTop: 4, maxHeight: 80, overflowY: 'auto' }}>
++                                    <Text style={{ fontSize: 12 }}>{alert.messageContext}</Text>
++                                </div>
++                            )}
++                            <div><Text strong>Thß╗¥i gian:</Text> <Text>{new Date(alert.timestamp).toLocaleString('vi-VN')}</Text></div>
++                        </Space>
++                    ),
++                    width: 500,
++                    okText: '─É├ú xem',
+                 });
+-            })
+-            .catch(err => console.error('MonitorNotification SignalR error:', err));
++            } else {
++                notifApi.warning({
++                    message: cfg.label,
++                    description: (
++                        <Space direction="vertical" size={2}>
++                            <Text>
++                                <Text strong>{alert.computerName}</Text>
++                                {alert.computerUser ? ` (${alert.computerUser})` : ''}
++                            </Text>
++                            {alert.applicationName && <Text type="secondary">App: {alert.applicationName}</Text>}
++                            {alert.detectedKeyword && <Tag color="orange" style={{ marginTop: 2 }}>{alert.detectedKeyword}</Tag>}
++                        </Space>
++                    ),
++                    icon: <span style={{ color: cfg.color }}>{cfg.icon}</span>,
++                    duration: 8,
++                    placement: 'topRight',
++                });
++            }
++        });
++
++        // Start connection ΓÇö kiß╗âm tra cancelled ─æß╗â tr├ính StrictMode race condition
++        const startConnection = async () => {
++            try {
++                if (cancelled) return;
++                await connection.start();
++                if (cancelled) {
++                    // StrictMode ─æ├ú unmount trong khi ─æang connect ΓåÆ dß╗ìn dß║╣p
++                    connection.stop();
++                    return;
++                }
++                console.log('Γ£à SignalR MonitorNotification connected successfully');
++                connectionRef.current = connection;
++            } catch (err) {
++                if (!cancelled) {
++                    console.error('MonitorNotification SignalR error:', err);
++                }
++            }
++        };
+ 
+-        connectionRef.current = connection;
++        startConnection();
+ 
+         return () => {
++            cancelled = true;
+             connection.off('MonitorAlert');
+-            connection.stop();
++            if (connection.state !== signalR.HubConnectionState.Disconnected) {
++                connection.stop();
++            }
+         };
+     }, [userRole, notifApi]);
+ 
+diff --git a/src/InsiderThreat.Web/src/components/social/PostComposer.js b/src/InsiderThreat.Web/src/components/social/PostComposer.js
+index 667b63a..acdbb9e 100644
+--- a/src/InsiderThreat.Web/src/components/social/PostComposer.js
++++ b/src/InsiderThreat.Web/src/components/social/PostComposer.js
+@@ -109,7 +109,7 @@ var PostComposer = function (_a) {
+                     formData = new FormData();
+                     formData.append('file', file);
+                     token = localStorage.getItem('token');
+-                    return [4 /*yield*/, axios.post("".concat(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5038', "/api/upload"), formData, {
++                    return [4 /*yield*/, axios.post("".concat(import.meta.env.VITE_API_BASE_URL || 'https://tuyen-thda.io.vn', "/api/upload"), formData, {
+                             headers: {
+                                 'Content-Type': 'multipart/form-data',
+                                 'Authorization': "Bearer ".concat(token)
+diff --git a/src/InsiderThreat.Web/src/components/social/PostComposer.tsx b/src/InsiderThreat.Web/src/components/social/PostComposer.tsx
+index 4ac0786..791ffe1 100644
+--- a/src/InsiderThreat.Web/src/components/social/PostComposer.tsx
++++ b/src/InsiderThreat.Web/src/components/social/PostComposer.tsx
+@@ -72,7 +72,7 @@ const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => {
+ 
+                 // D├╣ng axios trß╗▒c tiß║┐p ─æß╗â theo d├╡i progress
+                 const token = localStorage.getItem('token');
+-                const uploadRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5038'}/api/upload`, formData, {
++                const uploadRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'https://tuyen-thda.io.vn'}/api/upload`, formData, {
+                     headers: { 
+                         'Content-Type': 'multipart/form-data',
+                         'Authorization': `Bearer ${token}`
+diff --git a/src/InsiderThreat.Web/src/pages/MonitorLogsPage.tsx b/src/InsiderThreat.Web/src/pages/MonitorLogsPage.tsx
+index ae1fc86..26e9d9e 100644
+--- a/src/InsiderThreat.Web/src/pages/MonitorLogsPage.tsx
++++ b/src/InsiderThreat.Web/src/pages/MonitorLogsPage.tsx
+@@ -646,22 +646,22 @@ const MonitorLogsPage: React.FC = () => {
+             {/* ≡ƒôè Summary Stats */}
+             <Row gutter={[12, 12]} style={{ marginBottom: isMobile ? '16px' : '24px' }}>
+                 <Col span={isMobile ? 12 : 6}>
+-                    <Card size="small" className="stat-card total" bordered={false}>
++                    <Card size="small" className="stat-card total" variant="borderless">
+                         <Statistic
+                             title="Tß╗òng h├┤m nay"
+                             value={summary?.totalToday || 0}
+-                            valueStyle={{ fontSize: isMobile ? 20 : 24 }}
++                            styles={{ content: { fontSize: isMobile ? 20 : 24 } }}
+                             className="stat-value total"
+                             prefix={<SecurityScanOutlined />}
+                         />
+                     </Card>
+                 </Col>
+                 <Col span={isMobile ? 12 : 6}>
+-                    <Card size="small" className="stat-card critical" bordered={false}>
++                    <Card size="small" className="stat-card critical" variant="borderless">
+                         <Statistic
+                             title="Nguy hiß╗âm"
+                             value={summary?.criticalToday || 0}
+-                            valueStyle={{ fontSize: isMobile ? 20 : 24 }}
++                            styles={{ content: { fontSize: isMobile ? 20 : 24 } }}
+                             className="stat-value critical"
+                             prefix={<WarningOutlined />}
+                         />
+@@ -670,12 +670,12 @@ const MonitorLogsPage: React.FC = () => {
+                 {!isMobile && (
+                     <>
+                         <Col span={6}>
+-                            <Card className="stat-card screenshots" bordered={false}>
++                            <Card className="stat-card screenshots" variant="borderless">
+                                 <Statistic title="ß║ónh chß╗Ñp" value={summary?.screenshotsToday || 0} className="stat-value screenshots" prefix={<CameraOutlined />} />
+                             </Card>
+                         </Col>
+                         <Col span={6}>
+-                            <Card className="stat-card keywords" bordered={false}>
++                            <Card className="stat-card keywords" variant="borderless">
+                                 <Statistic title="Tß╗½ kh├│a" value={summary?.keywordsToday || 0} className="stat-value keywords" prefix={<KeyOutlined />} />
+                             </Card>
+                         </Col>
+diff --git a/src/InsiderThreat.Web/src/services/api.ts b/src/InsiderThreat.Web/src/services/api.ts
+index 047fd96..730e735 100644
+--- a/src/InsiderThreat.Web/src/services/api.ts
++++ b/src/InsiderThreat.Web/src/services/api.ts
+@@ -2,8 +2,8 @@ import axios from 'axios';
+ 
+ // API Base URL - ─æß╗ìc tß╗½ biß║┐n m├┤i tr╞░ß╗¥ng (tß╗▒ ─æß╗Öng chß╗ìn dev/production)
+ // Development: http://localhost:5038  (file .env)
+-// Production:  http://150.95.104.244  (file .env.production)
+-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5038';
++// Production:  https://tuyen-thda.io.vn  (file .env.production)
++export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tuyen-thda.io.vn';
+ 
+ // Tß║ío axios instance
+ const apiClient = axios.create({

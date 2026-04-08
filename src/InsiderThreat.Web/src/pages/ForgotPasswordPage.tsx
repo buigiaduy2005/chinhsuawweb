@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/Logo';
 import './ForgotPasswordPage.css';
 
+
 const { Title } = Typography;
 
 function ForgotPasswordPage() {

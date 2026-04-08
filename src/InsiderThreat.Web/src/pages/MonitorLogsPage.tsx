@@ -27,6 +27,7 @@ import {
 } from '@ant-design/icons';
 import { Table, Tag, Card, Row, Col, Statistic, Select, Input, Space, Button, Typography, Avatar, Badge, App, Breadcrumb, Modal, Checkbox, Upload, Empty } from 'antd';
 import { monitorService } from '../services/monitorService';
+import type { ColumnsType } from 'antd/es/table';
 import { useTheme } from '../context/ThemeContext';
 import './MonitorLogsPage.css';
 import type { MonitorLog, MonitorSummary } from '../services/monitorService';
@@ -35,6 +36,7 @@ import {
     PieChart, Pie, Cell, Legend, 
     BarChart, Bar
 } from 'recharts';
+import BottomNavigation from '../components/BottomNavigation';
 
 const { Dragger } = Upload;
 const { Title, Text } = Typography;
@@ -386,7 +388,6 @@ const MonitorLogsPage: React.FC = () => {
                     message.success(`Đã đóng gói thành công: ${fileName}`);
                     if (clearAfterExport) {
                         loadOverview();
-                        if (selectedMachine) handleBack();
                     }
                 } catch (error: any) {
                     console.error('Archive failed:', error);
@@ -585,6 +586,7 @@ const MonitorLogsPage: React.FC = () => {
     // ─── RENDER ──────────────────────────
     return (
         <div className={`monitor-logs-container ${isMobile ? 'mobile' : ''} ${isDark ? 'dark' : ''}`}>
+
             {/* 📱 Header & Navigation */}
             <div className={`monitor-header ${isMobile ? 'mobile' : ''}`}>
                 <div>
@@ -602,13 +604,7 @@ const MonitorLogsPage: React.FC = () => {
                     </Title>
                 </div>
                 <Space wrap={isMobile} style={{ width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
-                    <Button 
-                        icon={<ArrowLeftOutlined />} 
-                        onClick={selectedMachine ? handleBack : () => navigate(-1)}
-                        size={isMobile ? 'middle' : 'middle'}
-                    >
-                        {!isMobile && (selectedMachine ? 'Quay lại' : 'Trở lại')}
-                    </Button>
+
                     
                     {!isMobile && !isArchiveMode && (
                         <>
@@ -643,22 +639,22 @@ const MonitorLogsPage: React.FC = () => {
             {/* 📊 Summary Stats */}
             <Row gutter={[12, 12]} style={{ marginBottom: isMobile ? '16px' : '24px' }}>
                 <Col span={isMobile ? 12 : 6}>
-                    <Card size="small" className="stat-card total" bordered={false}>
+                    <Card size="small" className="stat-card total" variant="borderless">
                         <Statistic
                             title="Tổng hôm nay"
                             value={summary?.totalToday || 0}
-                            valueStyle={{ fontSize: isMobile ? 20 : 24 }}
+                            styles={{ content: { fontSize: isMobile ? 20 : 24 } }}
                             className="stat-value total"
                             prefix={<SecurityScanOutlined />}
                         />
                     </Card>
                 </Col>
                 <Col span={isMobile ? 12 : 6}>
-                    <Card size="small" className="stat-card critical" bordered={false}>
+                    <Card size="small" className="stat-card critical" variant="borderless">
                         <Statistic
                             title="Nguy hiểm"
                             value={summary?.criticalToday || 0}
-                            valueStyle={{ fontSize: isMobile ? 20 : 24 }}
+                            styles={{ content: { fontSize: isMobile ? 20 : 24 } }}
                             className="stat-value critical"
                             prefix={<WarningOutlined />}
                         />
@@ -667,12 +663,12 @@ const MonitorLogsPage: React.FC = () => {
                 {!isMobile && (
                     <>
                         <Col span={6}>
-                            <Card className="stat-card screenshots" bordered={false}>
+                            <Card className="stat-card screenshots" variant="borderless">
                                 <Statistic title="Ảnh chụp" value={summary?.screenshotsToday || 0} className="stat-value screenshots" prefix={<CameraOutlined />} />
                             </Card>
                         </Col>
                         <Col span={6}>
-                            <Card className="stat-card keywords" bordered={false}>
+                            <Card className="stat-card keywords" variant="borderless">
                                 <Statistic title="Từ khóa" value={summary?.keywordsToday || 0} className="stat-value keywords" prefix={<KeyOutlined />} />
                             </Card>
                         </Col>
@@ -880,6 +876,22 @@ const MonitorLogsPage: React.FC = () => {
                     <p className="ant-upload-text">Kéo thả tệp ZIP vào đây</p>
                 </Dragger>
             </Modal>
+            {window.innerWidth < 1024 && (
+                <BottomNavigation 
+                    activeKey="monitor-logs"
+                    items={[
+                        { icon: 'newspaper', label: t('dashboard.nav_feed', 'Feed'), path: '/feed' },
+                        { icon: 'person_search', label: t('dashboard.menu_users', 'User Management'), path: '/dashboard?tab=users' },
+                        { icon: 'forum', label: t('dashboard.menu_posts', 'Post Management'), path: '/dashboard?tab=posts' },
+                        { icon: 'report_problem', label: t('dashboard.menu_reports', 'Báo cáo vi phạm'), path: '/dashboard?tab=reports' },
+                        { icon: 'usb', label: t('dashboard.menu_usb', 'USB Management'), path: '/dashboard?tab=usb' },
+                        { icon: 'folder_managed', label: t('dashboard.menu_documents', 'Document Logs'), path: '/dashboard?tab=documents' },
+                        { icon: 'fact_check', label: t('dashboard.menu_attendance', 'Attendance'), path: '/dashboard?tab=attendance' },
+                        { icon: 'monitoring', label: t('dashboard.menu_monitor', 'Giám sát Hành vi'), path: '/monitor-logs', key: 'monitor-logs' },
+                        { icon: 'security', label: t('dashboard.menu_watchdog', 'Watchdog'), path: '/watchdog' },
+                    ]} 
+                />
+            )}
         </div>
     );
 };

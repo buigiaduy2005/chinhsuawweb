@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, List, Avatar, Card, Tooltip } from 'antd';
-import { MessageOutlined, CloseOutlined, SendOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Input, Avatar, Tooltip } from 'antd';
+import { CloseOutlined, SendOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
 import styles from './ChatWidget.module.css';
 import { authService } from '../services/auth';
 
@@ -41,25 +42,56 @@ export const ChatWidget: React.FC = () => {
             timestamp: new Date()
         };
 
-        setMessages(prev => [...prev, userMsg]);
+        const currentMessages = [...messages, userMsg];
+        setMessages(currentMessages);
         setInputValue('');
         setLoading(true);
 
         try {
-            // Logic gọi Bot API có thể được thêm ở đây
-            // Tạm thời mô phỏng phản hồi từ bot
-            setTimeout(() => {
+            const apiMessages = [
+                { role: 'system', content: 'You are a helpful AI assistant in an enterprise application. Communicate clearly and concisely. You can understand and respond in Vietnamese.'},
+                ...messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+                { role: 'user', content: userMsg.text }
+            ];
+
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer [GROQ_API_KEY]'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.1-8b-instant',
+                    messages: apiMessages,
+                    temperature: 0.7,
+                })
+
+            });
+
+            const data = await response.json();
+            
+            if (data.choices && data.choices.length > 0) {
+                const reply = data.choices[0].message.content;
                 const botMsg: Message = {
                     id: (Date.now() + 1).toString(),
-                    text: `Cảm ơn ${user?.fullName || 'bạn'}! Tôi đã nhận được tin nhắn: "${userMsg.text}". Chức năng này đang được phát triển thêm.`,
+                    text: reply,
                     sender: 'bot',
                     timestamp: new Date()
                 };
                 setMessages(prev => [...prev, botMsg]);
-                setLoading(false);
-            }, 1000);
+            } else {
+                throw new Error("Invalid response format");
+            }
         } catch (error) {
             console.error('Error sending message to bot:', error);
+            const errorMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                text: "Xin lỗi, đã xảy ra lỗi kết nối. Vui lòng thử lại sau.",
+                sender: 'bot',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMsg]);
+        } finally {
             setLoading(false);
         }
     };
@@ -69,36 +101,36 @@ export const ChatWidget: React.FC = () => {
             {/* Floating Button */}
             {!isOpen && (
                 <Tooltip title="Chat với AI" placement="left">
-                    <Button
-                        type="primary"
-                        shape="circle"
-                        size="large"
-                        icon={<MessageOutlined style={{ fontSize: '24px' }} />}
-                        className={styles.floatingButton}
+                    <motion.div
+                        drag
+                        dragMomentum={false}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={styles.floatingButtonWrap}
                         onClick={() => setIsOpen(true)}
-                    />
+                    >
+                        <div className={styles.floatingButton}>
+                            <span style={{ fontWeight: '800', fontSize: '18px', letterSpacing: '1px', color: '#fff' }}>AI</span>
+                        </div>
+                    </motion.div>
                 </Tooltip>
             )}
 
             {/* Chat Window */}
             {isOpen && (
-                <Card
-                    className={styles.chatWindow}
-                    title={
-                        <div className={styles.header}>
-                            <div className={styles.headerTitle}>
-                                <RobotOutlined className={styles.headerIcon} />
-                                <span>Trợ lý AI</span>
-                            </div>
-                            <Button
-                                type="text"
-                                icon={<CloseOutlined />}
-                                onClick={() => setIsOpen(false)}
-                                className={styles.closeButton}
-                            />
+                <div className={styles.chatWindow}>
+                    <div className={styles.header}>
+                        <div className={styles.headerTitle}>
+                            <RobotOutlined className={styles.headerIcon} />
+                            <span>Trợ lý AI</span>
                         </div>
-                    }
-                >
+                        <Button
+                            type="text"
+                            icon={<CloseOutlined />}
+                            onClick={() => setIsOpen(false)}
+                            className={styles.closeButton}
+                        />
+                    </div>
                     <div className={styles.messageList}>
                         {messages.map((item) => (
                             <div
@@ -143,7 +175,7 @@ export const ChatWidget: React.FC = () => {
                             }
                         />
                     </div>
-                </Card>
+                </div>
             )}
         </div>
     );

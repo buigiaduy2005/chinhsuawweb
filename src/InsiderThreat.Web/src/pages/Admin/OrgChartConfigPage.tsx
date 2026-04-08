@@ -3,14 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { userService } from '../../services/userService';
 import { Table, Select, Avatar, Tag, Card, message, Space, Breadcrumb, Input } from 'antd';
-import { ClusterOutlined, UserOutlined, SaveOutlined } from '@ant-design/icons';
+import { ClusterOutlined, UserOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
 import type { User } from '../../types';
+import BottomNavigation from '../../components/BottomNavigation';
+
 
 export default function OrgChartConfigPage() {
     const { t } = useTranslation();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const fetchUsers = async () => {
         try {
@@ -152,37 +161,106 @@ export default function OrgChartConfigPage() {
     ];
 
     return (
-        <div className="p-8 max-w-6xl mx-auto animate-in">
-            <Breadcrumb className="mb-6">
-                <Breadcrumb.Item>Cài đặt</Breadcrumb.Item>
-                <Breadcrumb.Item>Cấu hình Sơ đồ Tổ chức</Breadcrumb.Item>
-            </Breadcrumb>
+        <div className={`${isMobile ? 'p-4' : 'p-8'} max-w-6xl mx-auto animate-in`} style={{ paddingBottom: isMobile ? 100 : 32 }}>
+            {!isMobile && (
+                <Breadcrumb className="mb-6">
+                    <Breadcrumb.Item>Cài đặt</Breadcrumb.Item>
+                    <Breadcrumb.Item>Cấu hình Sơ đồ Tổ chức</Breadcrumb.Item>
+                </Breadcrumb>
+            )}
 
-            <div className="flex justify-between items-center mb-8">
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'} mb-8`}>
                 <div>
-                    <h1 className="text-3xl font-extrabold flex items-center gap-3">
+                    <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold flex items-center gap-3`}>
                         <ClusterOutlined className="text-blue-500" />
-                        Quản lý Sơ đồ Tổ chức
+                        {isMobile ? 'Sơ đồ tổ chức' : 'Quản lý Sơ đồ Tổ chức'}
                     </h1>
-                    <p className="text-gray-500">Thiết lập mối quan hệ báo cáo giữa các cấp bậc (Admin - Giám đốc - Quản lý - Nhân viên)</p>
+                    {!isMobile && <p className="text-gray-500">Thiết lập mối quan hệ báo cáo giữa các cấp bậc (Admin - Giám đốc - Quản lý - Nhân viên)</p>}
                 </div>
                 <Input.Search 
                     placeholder="Tìm kiếm nhân viên..." 
-                    style={{ width: 300 }} 
+                    style={{ width: isMobile ? '100%' : 300 }} 
                     onSearch={setSearchText}
                     onChange={(e) => setSearchText(e.target.value)}
+                    className="shadow-sm rounded-xl"
                 />
             </div>
 
-            <Card className="shadow-lg border-0 rounded-2xl overflow-hidden glass-effect">
-                <Table 
-                    dataSource={filteredUsers} 
-                    columns={columns} 
-                    loading={loading}
-                    rowKey="id"
-                    pagination={{ pageSize: 15 }}
-                />
-            </Card>
+            {!isMobile ? (
+                <Card className="shadow-lg border-0 rounded-2xl overflow-hidden glass-effect">
+                    <Table 
+                        dataSource={filteredUsers} 
+                        columns={columns} 
+                        loading={loading}
+                        rowKey="id"
+                        pagination={{ pageSize: 15 }}
+                    />
+                </Card>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {loading ? (
+                        <div className="flex justify-center p-12"><ClusterOutlined spin className="text-4xl text-blue-500" /></div>
+                    ) : filteredUsers.length > 0 ? (
+                        filteredUsers.map(user => {
+                            const role = (user.position || user.role || '').toLowerCase();
+                            const isAdmin = role.includes('admin');
+                            const isDirector = role === 'giám đốc' || role === 'director';
+                            const potentials = getPotentialManagers(user);
+
+                            return (
+                                <Card key={user.id} className="shadow-sm border-0 rounded-2xl overflow-hidden glass-effect-subtle">
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex justify-between items-start">
+                                            <Space>
+                                                <Avatar size={48} src={user.avatarUrl} icon={<UserOutlined />} className="border-2 border-blue-100" />
+                                                <div>
+                                                    <div className="font-bold text-lg">{user.fullName || user.username}</div>
+                                                    <div className="text-xs text-gray-400">{user.department}</div>
+                                                </div>
+                                            </Space>
+                                            {getRoleTag(user.position || user.role)}
+                                        </div>
+
+                                        <div className="bg-gray-50 p-4 rounded-xl">
+                                            <div className="text-xs font-semibold text-gray-400 uppercase mb-2 tracking-wider">Người quản lý trực tiếp</div>
+                                            {isAdmin ? (
+                                                <div className="text-red-500 font-medium flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-sm">castle</span>
+                                                    Cấp cao nhất
+                                                </div>
+                                            ) : isDirector ? (
+                                                <div className="text-amber-600 font-medium flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-sm">crown</span>
+                                                    Báo cáo Admin
+                                                </div>
+                                            ) : (
+                                                <Select
+                                                    placeholder="Chọn người quản lý"
+                                                    style={{ width: '100%' }}
+                                                    value={user.managerId || null}
+                                                    onChange={(value) => handleUpdateManager(user.id || '', value)}
+                                                    allowClear
+                                                    className="org-config-select"
+                                                >
+                                                    {potentials.map(m => (
+                                                        <Select.Option key={m.id} value={m.id}>
+                                                            {m.fullName || m.username} ({m.position || m.role})
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })
+                    ) : (
+                        <div className="text-center p-12 text-gray-400">Không tìm thấy nhân sự</div>
+                    )}
+                </div>
+            )}
+
+            {isMobile && <BottomNavigation />}
         </div>
     );
 }

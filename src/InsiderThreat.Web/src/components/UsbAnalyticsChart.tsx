@@ -3,6 +3,7 @@ import { Card, Space, Typography, Spin, Empty } from 'antd';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { api } from '../services/api';
 import { UsbOutlined } from '@ant-design/icons';
+import { useTheme } from '../context/ThemeContext';
 
 const { Text, Title } = Typography;
 
@@ -14,6 +15,8 @@ interface UsbStat {
 const COLORS = ['#1890ff', '#f5222d', '#faad14', '#52c41a', '#722ed1', '#eb2f96'];
 
 const UsbAnalyticsChart: React.FC = () => {
+    const { theme } = useTheme();
+    const isDarkMode = theme === 'dark';
     const [data, setData] = useState<UsbStat[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -65,21 +68,29 @@ const UsbAnalyticsChart: React.FC = () => {
                 <div style={{ width: '100%', height: 250 }}>
                     <ResponsiveContainer>
                         <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#f0f0f0'} strokeOpacity={isDarkMode ? 0.5 : 1} />
                             <XAxis 
                                 dataKey="machineName" 
                                 axisLine={false} 
                                 tickLine={false} 
                                 style={{ fontSize: '12px' }} 
+                                stroke={isDarkMode ? '#94a3b8' : '#64748b'}
                             />
                             <YAxis 
                                 axisLine={false} 
                                 tickLine={false} 
                                 style={{ fontSize: '12px' }} 
+                                stroke={isDarkMode ? '#94a3b8' : '#64748b'}
                             />
                             <Tooltip 
-                                cursor={{fill: '#f5f5f5'}}
-                                contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                cursor={{fill: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f5f5f5'}}
+                                contentStyle={{ 
+                                    borderRadius: 12, 
+                                    border: 'none', 
+                                    boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
+                                    background: isDarkMode ? '#1e293b' : '#ffffff',
+                                    color: isDarkMode ? '#f1f5f9' : '#0f172a'
+                                }} 
                             />
                             <Bar dataKey="count" name="Số lần hoạt động" radius={[4, 4, 0, 0]} barSize={40}>
                                 {data.map((entry, index) => (

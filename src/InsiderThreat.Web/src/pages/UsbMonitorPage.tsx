@@ -1,6 +1,7 @@
 import { Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 
+
 const { Title } = Typography;
 
 function UsbMonitorPage() {

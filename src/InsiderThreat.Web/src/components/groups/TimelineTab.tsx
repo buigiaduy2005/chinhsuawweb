@@ -10,7 +10,9 @@ import {
 import dayjs from 'dayjs';
 import { api } from '../../services/api';
 import { signalRService } from '../../services/signalRService';
+import ProjectMobileTabs from './ProjectMobileTabs';
 import './TimelineTab.css';
+import './ProjectMobileTabs.css';
 
 interface Task {
     id: string;
@@ -37,7 +39,12 @@ interface GroupInfo {
     milestones: Milestone[];
 }
 
-export default function TimelineTab() {
+interface TimelineTabProps {
+    activeTab?: string;
+    onTabChange?: (key: string) => void;
+}
+
+export default function TimelineTab({ activeTab, onTabChange }: TimelineTabProps) {
     const { id: groupId } = useParams<{ id: string }>();
     const { t } = useTranslation();
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -254,6 +261,11 @@ export default function TimelineTab() {
                     <Button type="primary" icon={<CalendarOutlined />} onClick={() => setIsScheduleModalVisible(true)}>{t('project_detail.timeline.btn_schedule', { defaultValue: 'Lập lịch' })}</Button>
                 </div>
             </div>
+
+            {/* Mobile Tabs Relocated Below Search Bar */}
+            {activeTab && onTabChange && (
+                <ProjectMobileTabs activeTab={activeTab} onTabChange={onTabChange} />
+            )}
 
             <div className="timeline-container">
                 <div className="timeline-body-wrapper">

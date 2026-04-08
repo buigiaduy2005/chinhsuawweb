@@ -10,14 +10,23 @@
         right: 0;
         height: var(--bottom-nav-height);
         background: var(--color-surface-glass);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
         display: flex;
-        justify-content: space-around;
+        justify-content: flex-start; /* Changed from space-around */
         align-items: center;
         border-top: 1px solid var(--color-border);
         z-index: 1000;
+        padding: 0 16px; /* Added internal padding */
         padding-bottom: env(safe-area-inset-bottom);
+        overflow-x: auto; /* Enable horizontal scroll */
+        -webkit-overflow-scrolling: touch;
+        gap: 20px; /* Space between items */
+        scrollbar-width: none; /* Hide scrollbar for Firefox */
+    }
+
+    .bottomNav::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for Chrome/Safari */
     }
 
     .dashboardBottomNav {
@@ -46,10 +55,11 @@
         border: none;
         color: var(--color-text-muted);
         gap: 4px;
-        flex: 1;
+        flex: 0 0 auto; /* Changed from flex: 1 */
+        min-width: 60px; /* Minimum width for each item */
         cursor: pointer;
         transition: all 0.2s ease;
-        padding: 8px 0;
+        padding: 4px 8px; /* Adjusted padding */
     }
 
     .navItem span:first-child {

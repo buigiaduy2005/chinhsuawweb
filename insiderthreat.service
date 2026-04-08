@@ -1,0 +1,15 @@
+[Unit]
+Description=InsiderThreat System Backend
+After=network.target
+
+[Service]
+WorkingDirectory=/root/insiderthreat-server
+ExecStart=/usr/bin/dotnet /root/insiderthreat-server/InsiderThreat.Server.dll
+Restart=always
+RestartSec=10
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5038
+User=root
+
+[Install]
+WantedBy=multi-user.target

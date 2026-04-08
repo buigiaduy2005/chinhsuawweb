@@ -16,7 +16,7 @@ namespace InsiderThreat.AdminApp
     {
         // ✅ AdminApp chạy trên máy Windows của Admin, kết nối về Server Production
         // URL sẽ được load từ file appsettings.json (ưu tiên)
-        private string _apiUrl = "https://tuyen-thda.io.vn/api/logs";
+        private string _apiUrl = "http://localhost:5038/api/logs";
 
         private readonly HttpClient _client = new HttpClient();
 

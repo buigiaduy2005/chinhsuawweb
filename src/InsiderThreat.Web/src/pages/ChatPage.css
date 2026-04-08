@@ -11,20 +11,11 @@
     overflow: hidden;
 }
 
-/* Chat Header */
-.chat-header {
-    height: var(--header-height);
+.chat-main-container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    background: var(--color-surface-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--color-border);
-    flex-shrink: 0;
-    z-index: 10;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
 }
 
 /* Chat Layout */
@@ -33,6 +24,7 @@
     flex: 1;
     overflow: hidden;
     min-height: 0;
+    position: relative;
 }
 
 /* Sidebar */

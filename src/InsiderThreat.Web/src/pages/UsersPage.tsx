@@ -12,6 +12,7 @@ import { feedService } from '../services/feedService';
 import { authService } from '../services/auth';
 import './UsersPage.css';
 
+
 const { Option } = Select;
 
 function UsersPage() {
@@ -229,18 +230,9 @@ function UsersPage() {
 
 
     return (
-        <div className="usersPage-wrapper-inner">
+        <div style={{ padding: 24 }}>
             <div className="usersPage">
-                {/* Mockup TOP Header (Only on Mobile) */}
-                {isMobile && (
-                    <header className="mockup-top-header">
-                        <span className="material-symbols-outlined menu-icon">menu</span>
-                        <div className="header-right-mock">
-                            <Avatar size={40} src="https://i.pravatar.cc/150?u=admin" className="mock-avatar" />
-                            <div className="admin-badge">ADMIN</div>
-                        </div>
-                    </header>
-                )}
+
 
                 {/* Sub Header */}
                 <div className="usersHeader">

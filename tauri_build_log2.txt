@@ -1,0 +1,112 @@
+﻿node.exe :         Info Looking up installed tauri 
+packages to check mismatched versions...
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (        I 
+   nfo Lo...hed versions...:String) [], RemoteExcepti  
+  on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+        Warn The bundle identifier 
+"com.insiderthreat.app" set in `"tauri.conf.json" 
+identifier` ends with `.app`. This is not recommended 
+because it conflicts with the application bundle 
+extension on macOS.
+     Running beforeBuildCommand `npm run build`
+
+> insiderthreat-web@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[33mnode_modules/@microsoft/signalr/dist/esm/Utils.js 
+(190:0): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@microsoft/signalr/dist/esm/Utils.js" 
+contains an annotation that Rollup cannot interpret 
+due to the position of the comment. The comment will 
+be removed to avoid issues.[39m
+[33mnode_modules/@microsoft/signalr/dist/esm/Utils.js 
+(208:0): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@microsoft/signalr/dist/esm/Utils.js" 
+contains an annotation that Rollup cannot interpret 
+due to the position of the comment. The comment will 
+be removed to avoid issues.[39m
+[33msrc/components/FaceRegistrationModal.tsx 
+(103:42): "default" is not exported by "node_modules/@v
+ladmandic/face-api/dist/face-api.esm.js", imported by 
+"src/components/FaceRegistrationModal.tsx".[39m
+[32mΓ£ô[39m 4810 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                         [39m[1m[2m    1.85 kB[22m[1m[22m[2m Γöé gzip:     0.94 kB[22m
+[2mdist/[22m[35massets/index-BAK5BMzT.css          [39m[1m[2m  240.90 kB[22m[1m[22m[2m Γöé gzip:    41.79 kB[22m
+[2mdist/[22m[36massets/empty-GlqisfcO-CRMO4_-l.js  [39m[1m[2m    0.03 kB[22m[1m[22m[2m Γöé gzip:     0.05 kB[22m
+[2mdist/[22m[36massets/index-rMqNZYyA-Be2XHPZ9.js  [39m[1m[2m    0.98 kB[22m[1m[22m[2m Γöé gzip:     0.58 kB[22m
+[2mdist/[22m[36massets/url-Bs332b_7-BlfS8dTU.js    [39m[1m[2m   15.04 kB[22m[1m[22m[2m Γöé gzip:     5.99 kB[22m
+[2mdist/[22m[36massets/index-B0Gk_P0t-DmFUohqK.js  [39m[1m[2m   86.23 kB[22m[1m[22m[2m Γöé gzip:    27.54 kB[22m
+[2mdist/[22m[36massets/index-prjvcUjn.js           [39m[1m[33m5,178.50 kB[39m[22m[2m Γöé gzip: 1,492.25 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after 
+minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to 
+improve chunking: https://rollupjs.org/configuration-op
+tions/#output-manualchunks
+- Adjust chunk size limit for this warning via 
+build.chunkSizeWarningLimit.[39m
+[32mΓ£ô built in 56.02s[39m
+   Compiling app v0.1.0 
+(C:\secu\src\InsiderThreat.Web\src-tauri)
+warning: unused import: `tauri_plugin_shell::ShellExt`
+  --> src\lib.rs:10:11
+   |
+10 |       use tauri_plugin_shell::ShellExt;
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of 
+`#[warn(unused)]`) on by default
+
+warning: `app` (lib) generated 1 warning (run `cargo 
+fix --lib -p app` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) 
+in 1m 07s
+       Built application at: C:\secu\src\InsiderThreat.
+Web\src-tauri\target\release\app.exe
+        Info Patching C:\secu\src\InsiderThreat.Web\src
+-tauri\target\release\app.exe with bundle type 
+information: msi
+        Info Target: x64
+     Running candle for "C:\\secu\\src\\InsiderThreat.W
+eb\\src-tauri\\target\\release\\wix\\x64\\main.wxs"
+     Running light to produce C:\secu\src\InsiderThreat
+.Web\src-tauri\target\release\bundle\msi\InsiderThreat_
+0.1.0_x64_en-US.msi
+        Info Patching C:\secu\src\InsiderThreat.Web\src
+-tauri\target\release\app.exe with bundle type 
+information: nsis
+        Info Target: x64
+     Running makensis to produce C:\secu\src\InsiderThr
+eat.Web\src-tauri\target\release\bundle\nsis\InsiderThr
+eat_0.1.0_x64-setup.exe
+File: "C:\InsiderThreat-System\InsiderThreat-System\src
+\InsiderThreat.Web\src-tauri\target\release\app.exe" 
+-> no files found.
+Usage: File [/nonfatal] [/a] ([/r] [/x filespec [...]] 
+filespec [...] |
+   /oname=outfile one_file_only)
+Error in script "C:\secu\src\InsiderThreat.Web\src-taur
+i\target\release\nsis\x64\installer.nsi" on line 656 
+-- aborting creation process
+failed to bundle project `The system cannot find the 
+file specified. (os error 2)`
+       Error failed to bundle project `The system 
+cannot find the file specified. (os error 2)`

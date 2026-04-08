@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { Spin, Card, Avatar, Drawer, Input, Space, Divider, Typography } from 'antd';
 import { UserOutlined, ClusterOutlined, MailOutlined, PhoneOutlined, IdcardOutlined } from '@ant-design/icons';
+import BottomNavigation from '../../components/BottomNavigation';
 import './OrgChartPage.css';
+
 
 interface UserNode {
     id: string;
@@ -204,13 +206,7 @@ export default function OrgChartPage() {
 
             <div className="page-header" style={{ justifyContent: 'space-between', padding: '0 40px', marginBottom: '30px' }}>
                 <div className="flex items-center gap-4">
-                    <button 
-                        className="back-btn-circular" 
-                        onClick={() => navigate(-1)}
-                        title="Quay lại"
-                    >
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
+
                     <div className="header-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb' }}>
                         <ClusterOutlined />
                     </div>
@@ -302,6 +298,22 @@ export default function OrgChartPage() {
                     </div>
                 )}
             </Drawer>
+            {window.innerWidth < 1024 && (
+                <BottomNavigation 
+                    activeKey="staff"
+                    items={[
+                        { icon: 'newspaper', label: t('dashboard.nav_feed', 'Feed'), path: '/feed' },
+                        { icon: 'person_search', label: t('dashboard.menu_users', 'User Management'), path: '/dashboard?tab=users' },
+                        { icon: 'forum', label: t('dashboard.menu_posts', 'Post Management'), path: '/dashboard?tab=posts' },
+                        { icon: 'report_problem', label: t('dashboard.menu_reports', 'Báo cáo vi phạm'), path: '/dashboard?tab=reports' },
+                        { icon: 'usb', label: t('dashboard.menu_usb', 'USB Management'), path: '/dashboard?tab=usb' },
+                        { icon: 'folder_managed', label: t('dashboard.menu_documents', 'Document Logs'), path: '/dashboard?tab=documents' },
+                        { icon: 'fact_check', label: t('dashboard.menu_attendance', 'Attendance'), path: '/dashboard?tab=attendance' },
+                        { icon: 'monitoring', label: t('dashboard.menu_monitor', 'Giám sát Hành vi'), path: '/monitor-logs' },
+                        { icon: 'security', label: t('dashboard.menu_watchdog', 'Watchdog'), path: '/watchdog' },
+                    ]}
+                />
+            )}
         </div>
     );
 }

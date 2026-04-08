@@ -11,6 +11,9 @@ import type { Message as ApiMessage } from '../services/chatService';
 import type { User } from '../types';
 import { confirmLogout } from '../utils/logoutUtils';
 import Logo from '../components/Logo';
+import NavigationBar from '../components/NavigationBar';
+import LeftSidebar from '../components/LeftSidebar';
+import BottomNavigation from '../components/BottomNavigation';
 import './ChatPage.css';
 
 // Types
@@ -42,6 +45,14 @@ interface Message {
 export default function ChatPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const userIdParam = searchParams.get('userId');
     const groupIdParam = searchParams.get('groupId');
 
@@ -410,10 +421,12 @@ export default function ChatPage() {
                     senderContent: plainText
                 } as any);
             } else {
-                // E2EE: Get receiver's public key
-                let receiverPublicKey = selectedUser.publicKey;
-                if (!receiverPublicKey) {
-                    receiverPublicKey = await chatService.getUserPublicKey(selectedUser.id);
+                // E2EE: Always fetch fresh public key from server to avoid stale cache
+                let receiverPublicKey: string | null = null;
+                try {
+                    receiverPublicKey = (await chatService.getUserPublicKey(selectedUser.id)) ?? null;
+                } catch {
+                    receiverPublicKey = selectedUser.publicKey ?? null;
                 }
 
                 // If receiver has public key, encrypt. Otherwise send plaintext
@@ -568,9 +581,12 @@ export default function ChatPage() {
             let encryptedForReceiver = plainText;
             let encryptedForSender: string | undefined;
 
-            let receiverPublicKey = selectedUser.publicKey;
-            if (!receiverPublicKey) {
-                receiverPublicKey = await chatService.getUserPublicKey(selectedUser.id);
+            // Always fetch fresh public key from server
+            let receiverPublicKey: string | null = null;
+            try {
+                receiverPublicKey = (await chatService.getUserPublicKey(selectedUser.id)) ?? null;
+            } catch {
+                receiverPublicKey = selectedUser.publicKey ?? null;
             }
 
             if (receiverPublicKey) {
@@ -605,38 +621,12 @@ export default function ChatPage() {
 
     return (
         <div className="chat-page-container">
-            {/* Header */}
-            <header className="chat-header">
-                <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/feed')}>
-                    <Logo width={36} height={36} showText={true} />
-                </div>
-
-                <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <button className="header-icon-btn" style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }} onClick={() => navigate('/feed')}>
-                        <span className="material-symbols-outlined">home</span>
-                    </button>
-                    <div className="user-avatar"
-                        style={{
-                            width: 40, height: 40, borderRadius: '50%',
-                            backgroundImage: `url(${(() => {
-                                const getAvatarUrl = (u: User | string | undefined | null) => {
-                                    if (!u) return `https://i.pravatar.cc/150`;
-                                    if (typeof u === 'string') return u.startsWith('http') ? u : `${API_BASE_URL}${u}`;
-                                    if (!(u as User).avatarUrl) return `https://i.pravatar.cc/150?u=${(u as User).username || 'user'}`;
-                                    if ((u as User).avatarUrl?.startsWith('http')) return (u as User).avatarUrl;
-                                    return `${API_BASE_URL}${(u as User).avatarUrl}`;
-                                };
-                                return getAvatarUrl(currentUser);
-                            })()})`,
-                            backgroundSize: 'cover',
-                            cursor: 'pointer'
-                        }}
-                        onClick={() => navigate('/profile')}
-                    ></div>
-                </div>
-            </header >
-
-            <div className="chat-layout">
+            <NavigationBar />
+            
+            <div className="chat-main-container">
+                {!isMobile && <LeftSidebar defaultCollapsed={true} />}
+                
+                <div className="chat-layout">
                 {/* Sidebar */}
                 <aside className={`chat-sidebar ${selectedUser ? 'mobile-hidden' : ''}`}>
                     <div className="sidebar-header" style={{ padding: '16px 16px 0 16px' }}>
@@ -692,17 +682,7 @@ export default function ChatPage() {
                                 </div>
                             ))}
                     </div>
-                    <div className="sidebar-bottom-padding" style={{ padding: 16, borderTop: '1px solid var(--color-dark-surface-lighter)' }}>
-                        <button onClick={handleLogout} style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#ef4444', width: '100%', padding: '8px 12px',
-                            borderRadius: 8, transition: 'background-color 0.2s'
-                        }}>
-                            <span className="material-symbols-outlined">logout</span>
-                            <span style={{ fontWeight: 500 }}>{t('chat.logout', 'Logout')}</span>
-                        </button>
-                    </div>
+
 
                     {/* Floating Action Button (Mobile) */}
                     <button className="mobile-fab">
@@ -713,32 +693,7 @@ export default function ChatPage() {
                 </aside>
 
                 {/* Bottom Navigation (Mobile) */}
-                <nav className={`mobile-bottom-nav ${selectedUser ? 'mobile-hidden' : ''}`}>
-                    <a className="nav-item active" href="#" onClick={(e) => { e.preventDefault(); setSelectedUser(null); }}>
-                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98 1 4.28L2 22l5.72-1c1.3.64 2.74 1 4.28 1 5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.47 0-2.84-.4-4.01-1.1l-.29-.17-3 .52.52-3-.17-.29C4.4 14.84 4 13.47 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"></path>
-                        </svg>
-                        <span>{t('chat.nav_chats', 'Chats')}</span>
-                    </a>
-                    <a className="nav-item" href="#">
-                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span>{t('chat.nav_contacts', 'Contacts')}</span>
-                    </a>
-                    <a className="nav-item" href="#" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
-                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        <span>{t('chat.nav_profile', 'Profile')}</span>
-                    </a>
-                    <a className="nav-item" href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>
-                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                        <span>{t('chat.logout', 'Logout')}</span>
-                    </a>
-                </nav>
+                {isMobile && !selectedUser && <BottomNavigation />}
 
                 {/* Main Chat Area */}
                 <main className={`chat-window ${!selectedUser ? 'mobile-hidden' : ''}`}>
@@ -1091,6 +1046,7 @@ export default function ChatPage() {
                     )}
                 </main>
             </div>
-        </div >
+        </div>
+    </div>
     );
 }

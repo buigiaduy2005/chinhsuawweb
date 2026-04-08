@@ -11,6 +11,7 @@ namespace InsiderThreat.MonitorAgent.Services;
 public class FileTrackerService : BackgroundService
 {
     private readonly LocalDatabaseService _db;
+    private readonly ServerSyncService _serverSync;
     private readonly ILogger<FileTrackerService> _logger;
     private readonly List<FileSystemWatcher> _watchers = new();
     private ManagementEventWatcher? _usbWatcher;
@@ -25,9 +26,10 @@ public class FileTrackerService : BackgroundService
     // Key: FilePath, Value: TrackedFileInfo
     private readonly ConcurrentDictionary<string, TrackedFileInfo> _trackedFiles = new();
 
-    public FileTrackerService(LocalDatabaseService db, ILogger<FileTrackerService> logger)
+    public FileTrackerService(LocalDatabaseService db, ServerSyncService serverSync, ILogger<FileTrackerService> logger)
     {
         _db = db;
+        _serverSync = serverSync;
         _logger = logger;
     }
 
@@ -40,7 +42,9 @@ public class FileTrackerService : BackgroundService
         var dirsToWatch = new[] { 
             Path.Combine(userPath, "Downloads"),
             Path.Combine(userPath, "Desktop"),
-            Path.Combine(userPath, "Documents")
+            Path.Combine(userPath, "Documents"),
+            Path.Combine(userPath, "OneDrive", "Desktop"),
+            Path.Combine(userPath, "OneDrive", "Documents")
         };
 
         foreach (var dir in dirsToWatch)
@@ -61,7 +65,7 @@ public class FileTrackerService : BackgroundService
         StartUsbMonitor();
 
         // Start active process handle tracking for Drag-and-Drop detection
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -132,7 +136,7 @@ public class FileTrackerService : BackgroundService
             // Debounce to prevent multiple alerts for the same file action
             if (_recentlyAlertedFiles.Contains(e.FullPath)) return;
 
-            Task.Run(async () => {
+            _ = Task.Run(async () => {
                 // Retry up to 3 times with exponential backoff for locked files
                 for (int attempt = 1; attempt <= 3; attempt++)
                 {
@@ -165,10 +169,10 @@ public class FileTrackerService : BackgroundService
             {
                 using var document = WordprocessingDocument.Open(fileStream, false);
                 var customPropsPart = document.CustomFilePropertiesPart;
-                if (customPropsPart != null)
+                if (customPropsPart?.Properties != null)
                 {
                     var prop = customPropsPart.Properties.Elements<DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty>()
-                        .FirstOrDefault(p => p.Name != null && p.Name.Value == "InsiderThreat:ID");
+                        .FirstOrDefault(p => p.Name?.Value == "InsiderThreat:ID");
                     trackingId = prop?.VTLPWSTR?.Text;
                 }
             }
@@ -178,6 +182,12 @@ public class FileTrackerService : BackgroundService
                 using var pdfDoc = new PdfDocument(reader);
                 var info = pdfDoc.GetDocumentInfo();
                 trackingId = info.GetMoreInfo("InsiderThreat:ID");
+            }
+
+            if (string.IsNullOrEmpty(trackingId))
+            {
+                _logger.LogDebug("Checked {Path}, but no InsiderThreat watermark found.", path);
+                return;
             }
 
             if (!string.IsNullOrEmpty(trackingId))
@@ -204,7 +214,7 @@ public class FileTrackerService : BackgroundService
 
                 // Add to recent cache
                 _recentlyAlertedFiles.Add(path);
-                Task.Delay(10000).ContinueWith(_ => _recentlyAlertedFiles.Remove(path)); // Reduced to 10s for more frequent logging as requested
+                _ = Task.Delay(10000).ContinueWith(_ => _recentlyAlertedFiles.Remove(path)); // Reduced to 10s for more frequent logging as requested
 
                 // Check for known app folders
                 var pathLower = path.ToLowerInvariant();
@@ -242,6 +252,8 @@ public class FileTrackerService : BackgroundService
                 };
 
                 _db.InsertLog(log);
+                // Trigger immediate sync for document leak
+                _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
             }
         }
         catch (Exception)
@@ -253,6 +265,7 @@ public class FileTrackerService : BackgroundService
 
     private async Task TrackOpenHandlesAsync()
     {
+        await Task.Yield(); // Suppress CS1998
         var now = DateTime.UtcNow;
         var toRemove = new List<string>();
 
@@ -276,23 +289,19 @@ public class FileTrackerService : BackgroundService
                 foreach (var p in processes)
                 {
                     string pName = p.ProcessName.ToLowerInvariant();
-                    string detectionSource = "";
                     string appName = "";
 
                     if (pName.Contains("zalo"))
                     {
-                        detectionSource = "Ứng dụng Chat";
                         appName = "Zalo";
                     }
                     else if (pName.Contains("telegram"))
                     {
-                        detectionSource = "Ứng dụng Chat";
                         appName = "Telegram";
                     }
                     else if (pName.Contains("msedge") || pName.Contains("chrome"))
                     {
                         // Browser uploaded
-                        detectionSource = "Trình duyệt (Tải lên web lạ)";
                         appName = p.ProcessName;
                     }
 
@@ -302,7 +311,7 @@ public class FileTrackerService : BackgroundService
                         if (_recentlyAlertedFiles.Contains(leakKey)) continue;
 
                         _recentlyAlertedFiles.Add(leakKey);
-                        Task.Delay(10000).ContinueWith(_ => _recentlyAlertedFiles.Remove(leakKey)); // Reduced to 10s for more frequent logging as requested
+                        _ = Task.Delay(10000).ContinueWith(_ => _recentlyAlertedFiles.Remove(leakKey)); // Reduced to 10s for more frequent logging as requested
 
                         var log = new MonitorLog
                         {
@@ -322,6 +331,8 @@ public class FileTrackerService : BackgroundService
 
                         _logger.LogWarning("🚨 DRAG & DROP LEAK: {App} opened {File}", appName, kvp.Key);
                         _db.InsertLog(log);
+                        // Trigger immediate sync for drag-drop leak
+                        _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
                     }
                 }
             }

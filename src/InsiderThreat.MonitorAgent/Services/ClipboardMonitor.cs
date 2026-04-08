@@ -16,6 +16,7 @@ namespace InsiderThreat.MonitorAgent.Services;
 public class ClipboardMonitor
 {
     private readonly LocalDatabaseService _db;
+    private readonly ServerSyncService _serverSync;
     private readonly ILogger<ClipboardMonitor> _logger;
     
     // Tracks the last copied files that had a tracking ID
@@ -30,9 +31,10 @@ public class ClipboardMonitor
     private readonly string _computerName = Environment.MachineName;
     private readonly string _computerUser = Environment.UserName;
 
-    public ClipboardMonitor(LocalDatabaseService db, ILogger<ClipboardMonitor> logger)
+    public ClipboardMonitor(LocalDatabaseService db, ServerSyncService serverSync, ILogger<ClipboardMonitor> logger)
     {
         _db = db;
+        _serverSync = serverSync;
         _logger = logger;
     }
 
@@ -113,7 +115,7 @@ public class ClipboardMonitor
 
                 // Log the copy itself
                 _recentAlerts.Add(alertKey);
-                Task.Delay(60000).ContinueWith(_ => _recentAlerts.Remove(alertKey));
+                _ = Task.Delay(60000).ContinueWith(_ => _recentAlerts.Remove(alertKey));
 
                 var log = new MonitorLog
                 {
@@ -135,6 +137,8 @@ public class ClipboardMonitor
                 };
 
                 _db.InsertLog(log);
+                // Trigger immediate sync for clipboard copy of tracked file
+                _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
 
                 // If already in a suspicious app, log immediately
                 if (IsSuspiciousApp(activeApp))
@@ -155,7 +159,7 @@ public class ClipboardMonitor
         if (_recentAlerts.Contains(leakKey)) return;
 
         _recentAlerts.Add(leakKey);
-        Task.Delay(10000).ContinueWith(_ => _recentAlerts.Remove(leakKey)); // Reduced to 10s for more frequent logging as requested
+        _ = Task.Delay(10000).ContinueWith(_ => _recentAlerts.Remove(leakKey)); // Reduced to 10s for more frequent logging as requested
 
         var friendlyTarget = DetectionHelper.GetFriendlyTargetName(appName, DetectionHelper.GetForegroundWindowTitle());
         var log = new MonitorLog
@@ -177,6 +181,8 @@ public class ClipboardMonitor
 
         _logger.LogWarning("🚨 CLIPBOARD LEAK: {App} received tracked file {File}", appName, Path.GetFileName(filePath));
         _db.InsertLog(log);
+        // Trigger immediate sync for clipboard leak
+        _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
     }
 
     private static bool IsSuspiciousApp(string processName)
@@ -205,11 +211,11 @@ public class ClipboardMonitor
             {
                 using var document = WordprocessingDocument.Open(fileStream, false);
                 var customPropsPart = document.CustomFilePropertiesPart;
-                if (customPropsPart != null)
+                if (customPropsPart?.Properties != null)
                 {
                     var prop = customPropsPart.Properties
                         .Elements<DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty>()
-                        .FirstOrDefault(p => p.Name != null && p.Name.Value == "InsiderThreat:ID");
+                        .FirstOrDefault(p => p.Name?.Value == "InsiderThreat:ID");
                     return prop?.VTLPWSTR?.Text;
                 }
             }

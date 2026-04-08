@@ -138,10 +138,6 @@ function FaceLoginPage() {
             <div style={{ position: 'fixed', top: 20, right: 20, display: 'flex', gap: 12 }}>
                 <LanguageToggle /><ThemeToggle />
             </div>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/login')}
-                style={{ position: 'fixed', top: 20, left: 20 }}>
-                Quay lại
-            </Button>
 
             <Card style={{ maxWidth: 460, width: '100%', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
                 {/* Header */}

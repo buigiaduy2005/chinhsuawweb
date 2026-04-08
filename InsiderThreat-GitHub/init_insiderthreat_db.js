@@ -156,4 +156,4 @@ print("Devices Collection Document Count: " + db.Devices.countDocuments({}));
 
 print("\n✅ InsiderThreatDB initialization complete!");
 print("\nConnection String for Compass:");
-print("mongodb://app_connect:123456@192.168.1.17:27017/InsiderThreatDB?authSource=admin");
+print("mongodb://admin:admin123@192.168.203.142:27017/?authSource=admin");

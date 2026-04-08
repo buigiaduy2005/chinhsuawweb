@@ -88,6 +88,44 @@ public class NotificationsController : ControllerBase
         return NoContent();
     }
 
+    // PUT: api/notifications/read-all
+    [HttpPut("read-all")]
+    public async Task<IActionResult> MarkAllAsRead()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var filter = Builders<Notification>.Filter.And(
+            Builders<Notification>.Filter.Eq(n => n.IsRead, false),
+            Builders<Notification>.Filter.Or(
+                Builders<Notification>.Filter.Eq(n => n.TargetUserId, userId),
+                Builders<Notification>.Filter.Eq(n => n.Type, "Global")
+            )
+        );
+
+        var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
+        await _notifications.UpdateManyAsync(filter, update);
+
+        return NoContent();
+    }
+
+    // DELETE: api/notifications/read
+    [HttpDelete("read")]
+    public async Task<IActionResult> DeleteReadNotifications()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var filter = Builders<Notification>.Filter.And(
+            Builders<Notification>.Filter.Eq(n => n.IsRead, true),
+            Builders<Notification>.Filter.Or(
+                Builders<Notification>.Filter.Eq(n => n.TargetUserId, userId),
+                Builders<Notification>.Filter.Eq(n => n.Type, "Global")
+            )
+        );
+
+        await _notifications.DeleteManyAsync(filter);
+        return NoContent();
+    }
+
     // GET: api/notifications/unread-count
     [HttpGet("unread-count")]
     public async Task<ActionResult<int>> GetUnreadCount()

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Tag, Space, Button, message } from 'antd';
 import { feedService } from '../services/feedService';
 
+
 function ReportsPage() {
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -49,7 +50,7 @@ function ReportsPage() {
     };
 
     return (
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: 24 }}>
             <h2 style={{ marginBottom: 16, fontSize: 24, fontWeight: 600 }}>📋 Báo cáo vi phạm</h2>
             <Table
                 dataSource={reports}

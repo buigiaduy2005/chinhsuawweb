@@ -8,6 +8,7 @@ using InsiderThreat.Server.Models;
 using InsiderThreat.Shared;
 using System.Security.Claims;
 using MongoDB.Bson.Serialization.Attributes;
+using InsiderThreat.Server.Services;
 
 namespace InsiderThreat.Server.Controllers
 {
@@ -27,8 +28,9 @@ namespace InsiderThreat.Server.Controllers
         private readonly ILogger<GroupsController> _logger;
         private readonly IMongoDatabase _database;
         private readonly IMongoCollection<ProjectActivity> _activities;
+        private readonly FileEncryptionService _encryptionService;
 
-        public GroupsController(IMongoDatabase database, IGridFSBucket gridFS, ILogger<GroupsController> logger, IHubContext<InsiderThreat.Server.Hubs.NotificationHub> hubContext)
+        public GroupsController(IMongoDatabase database, IGridFSBucket gridFS, ILogger<GroupsController> logger, IHubContext<InsiderThreat.Server.Hubs.NotificationHub> hubContext, FileEncryptionService encryptionService)
         {
             _database = database;
             _groups = database.GetCollection<Group>("Groups");
@@ -41,6 +43,7 @@ namespace InsiderThreat.Server.Controllers
             _logger = logger;
             _hubContext = hubContext;
             _activities = database.GetCollection<ProjectActivity>("ProjectActivities");
+            _encryptionService = encryptionService;
         }
 
         private async Task CreateAndPushNotification(string targetUserId, string message, string type, string? relatedId = null, string? link = null)
@@ -116,7 +119,10 @@ namespace InsiderThreat.Server.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 
                 var filterBuilder = Builders<Group>.Filter;
-                var isMember = filterBuilder.Where(g => g.MemberIds.Contains(userId!));
+                var isMember = filterBuilder.Or(
+                    filterBuilder.Where(g => g.MemberIds.Contains(userId!)),
+                    filterBuilder.Where(g => g.AdminIds.Contains(userId!))
+                );
                 var isPublicGroup = filterBuilder.And(
                     filterBuilder.Where(g => g.Privacy.ToLower() == "public"),
                     filterBuilder.Eq(g => g.IsProject, false)
@@ -167,14 +173,20 @@ namespace InsiderThreat.Server.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+                var memberIds = request.MemberIds ?? new List<string>();
+                if (!memberIds.Contains(userId!))
+                {
+                    memberIds.Add(userId!);
+                }
+
                 var group = new Group
                 {
                     Name = request.Name,
                     Description = request.Description,
                     Type = request.Type ?? "Project",
                     Privacy = request.Privacy ?? "Public",
-                    AdminIds = new List<string> { userId },
-                    MemberIds = request.MemberIds ?? new List<string> { userId },
+                    AdminIds = new List<string> { userId! },
+                    MemberIds = memberIds,
                     IsProject = request.IsProject,
                     Status = request.Status ?? "New",
                     ProjectStartDate = request.ProjectStartDate,
@@ -278,7 +290,16 @@ namespace InsiderThreat.Server.Controllers
                     StatusStats = statusStats,
                     OverdueCount = overdueCount,
                     OnTimeCount = onTimeCount,
-                    Tasks = enrichedTasks
+                    Tasks = enrichedTasks,
+                    UserGroups = userGroups.Select(g => new { 
+                        g.Id, 
+                        g.Name, 
+                        g.ProjectStartDate, 
+                        g.ProjectEndDate, 
+                        g.Milestones, 
+                        g.IsProject, 
+                        g.Status 
+                    })
                 });
             }
             catch (Exception ex)
@@ -566,7 +587,7 @@ namespace InsiderThreat.Server.Controllers
             try
             {
                 var fileId = await _gridFS.UploadFromStreamAsync(file.FileName, file.OpenReadStream());
-                var fileUrl = $"/api/documents/download/{fileId}"; // Assuming an existing download endpoint or I'll add one
+                var fileUrl = $"/api/DocumentLibrary/download/{fileId}";
 
                 return Ok(new
                 {
@@ -676,14 +697,62 @@ namespace InsiderThreat.Server.Controllers
         }
 
         [HttpPost("{id}/files")]
-        public async Task<IActionResult> AddFile(string id, [FromBody] ProjectFileRecord file)
+        public async Task<IActionResult> AddFile(string id, [FromForm] IFormFile file)
         {
-            file.GroupId = id;
-            file.UploadedAt = DateTime.UtcNow;
-            var filesCollection = _database.GetCollection<ProjectFileRecord>("ProjectFiles");
-            await filesCollection.InsertOneAsync(file);
-            await LogActivity(id, "file", "uploaded file:", file.FileName);
-            return Ok(file);
+            if (file == null || file.Length == 0) return BadRequest("File is empty");
+
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var currentUser = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+                var uploaderName = currentUser?.FullName ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
+
+                // 1. Encrypt and Upload to GridFS
+                using var sourceStream = file.OpenReadStream();
+                using var encryptedStream = new MemoryStream();
+                
+                await _encryptionService.EncryptStreamAsync(sourceStream, encryptedStream);
+                encryptedStream.Position = 0;
+
+                var options = new GridFSUploadOptions
+                {
+                    Metadata = new BsonDocument
+                    {
+                        { "originalName", file.FileName },
+                        { "contentType", file.ContentType },
+                        { "uploadedAt", DateTime.UtcNow },
+                        { "isEncrypted", true },
+                        { "uploaderId", userId }
+                    }
+                };
+
+                var fileId = await _gridFS.UploadFromStreamAsync(file.FileName, encryptedStream, options);
+
+                // 2. Save metadata record
+                var fileRecord = new ProjectFileRecord
+                {
+                    GroupId = id,
+                    FileId = fileId.ToString(),
+                    FileName = file.FileName,
+                    ContentType = file.ContentType,
+                    Size = file.Length,
+                    UploadedAt = DateTime.UtcNow,
+                    UploaderId = userId ?? "",
+                    UploaderName = uploaderName
+                };
+
+                var filesCollection = _database.GetCollection<ProjectFileRecord>("ProjectFiles");
+                await filesCollection.InsertOneAsync(fileRecord);
+                
+                await LogActivity(id, "file", "uploaded file (secured):", file.FileName);
+
+                return Ok(fileRecord);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading project file to group {GroupId}", id);
+                return StatusCode(500, new { message = "Lỗi hệ thống khi tải tệp lên", error = ex.Message });
+            }
         }
 
         [HttpPost("{id}/members")]
@@ -694,6 +763,36 @@ namespace InsiderThreat.Server.Controllers
             var u = await _users.Find(x => x.Id == request.UserId).FirstOrDefaultAsync();
             await LogActivity(id, "member", "added member:", u?.FullName ?? request.UserId);
             return Ok(new { message = "Added" });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteGroup(string id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var group = await _groups.Find(g => g.Id == id).FirstOrDefaultAsync();
+            if (group == null) return NotFound();
+
+            // Permission check: Only admins of the group can delete it
+            if (!group.AdminIds.Contains(userId))
+            {
+                return Forbid();
+            }
+
+            try
+            {
+                await _groups.DeleteOneAsync(g => g.Id == id);
+                
+                // Cleanup: Delete related tasks
+                await _tasks.DeleteManyAsync(t => t.GroupId == id);
+                
+                return Ok(new { message = "Xóa nhóm thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
@@ -761,6 +860,8 @@ namespace InsiderThreat.Server.Controllers
         public string FileName { get; set; } = string.Empty;
         public string ContentType { get; set; } = string.Empty;
         public long Size { get; set; }
+        public string UploaderId { get; set; } = string.Empty;
+        public string UploaderName { get; set; } = string.Empty;
         public DateTime UploadedAt { get; set; }
     }
 }

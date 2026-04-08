@@ -56,11 +56,15 @@
 
 /* Tabs Styling - Premium */
 .survey-tabs-container {
-    background: white;
+    background: var(--color-surface);
     padding: 10px;
     border-radius: 24px;
     border: 1px solid var(--color-border);
     box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+:global(.dark) .survey-tabs-container {
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 :global(.premium-tabs .ant-tabs-nav) {
@@ -75,7 +79,11 @@
 }
 
 :global(.premium-tabs .ant-tabs-tab-active) {
-    background: #f1f5f9 !important;
+    background: var(--color-surface-lighter) !important;
+}
+
+:global(.dark) :global(.premium-tabs .ant-tabs-tab:not(.ant-tabs-tab-active)) {
+    color: var(--color-text-muted) !important;
 }
 
 :global(.premium-tabs .ant-tabs-ink-bar) {
@@ -98,7 +106,7 @@
 .empty-survey-state {
     padding: 60px 40px;
     text-align: center;
-    background: white;
+    background: var(--color-surface);
     border-radius: 24px;
     border: 1px dashed var(--color-border);
 }

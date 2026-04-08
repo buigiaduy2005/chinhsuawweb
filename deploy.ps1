@@ -10,7 +10,7 @@ param(
     [switch]$backend
 )
 
-$SERVER = "root@150.95.104.244"
+$SERVER = "root@192.168.203.142"
 $ROOT = $PSScriptRoot
 
 $deployAll = -not $frontend -and -not $backend
@@ -88,7 +88,7 @@ if ($serverCmd) {
 Write-Host ""
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host "   ✅ Deploy hoàn tất!               " -ForegroundColor Green
-Write-Host "   🌐 http://150.95.104.244          " -ForegroundColor Green
+Write-Host "   🌐 http://192.168.203.142          " -ForegroundColor Green
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host ""
 

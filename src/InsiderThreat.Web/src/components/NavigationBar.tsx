@@ -13,9 +13,10 @@ import styles from './NavigationBar.module.css';
 
 interface NavigationBarProps {
     onChatClick?: () => void;
+    hideSearch?: boolean;
 }
 
-export default function NavigationBar({ onChatClick }: NavigationBarProps) {
+export default function NavigationBar({ onChatClick, hideSearch = false }: NavigationBarProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const [user, setUser] = useState(authService.getCurrentUser());
@@ -107,9 +108,11 @@ export default function NavigationBar({ onChatClick }: NavigationBarProps) {
             </div>
 
             {/* Search Bar */}
-            <div className={styles.searchContainer}>
-                <SearchBar />
-            </div>
+            {!hideSearch && (
+                <div className={styles.searchContainer}>
+                    <SearchBar />
+                </div>
+            )}
 
             {/* Right Section */}
             <div className={styles.rightSection}>

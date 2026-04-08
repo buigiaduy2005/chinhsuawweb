@@ -1,0 +1,5 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  InsiderThreat.Shared -> C:\secu\src\InsiderThreat.Shared\bin\Release\net8.0\InsiderThreat.Shared.dll
+  InsiderThreat.Server -> C:\secu\src\InsiderThreat.Server\bin\Release\net8.0\InsiderThreat.Server.dll
+  InsiderThreat.Server -> C:\secu\src\InsiderThreat.Server\publish\

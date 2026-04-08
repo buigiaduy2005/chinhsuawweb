@@ -3,7 +3,7 @@ using MongoDB.Bson;
 using System;
 using System.Linq;
 
-var connectionString = "mongodb://admin:admin123@127.0.0.1:27017/?authSource=admin";
+var connectionString = "mongodb://admin:admin123@192.168.203.142:27017/?authSource=admin";
 var client = new MongoClient(connectionString);
 var db = client.GetDatabase("InsiderThreatDB");
 var users = db.GetCollection<BsonDocument>("Users");

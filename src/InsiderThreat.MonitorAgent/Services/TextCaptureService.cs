@@ -283,19 +283,21 @@ public class TextCaptureService
                 }
             }
 
-            // 5. Recursive check on children
             // Use TreeWalker to find all children
-            _uiAutomation.get_RawViewWalker(out var walker);
-            if (walker != null)
+            if (_uiAutomation != null)
             {
-                walker.GetFirstChildElement(element, out var child);
-                while (child != null)
+                _uiAutomation.get_RawViewWalker(out var walker);
+                if (walker != null)
                 {
-                    var result = ExtractTextFromElement(child, depth + 1);
-                    if (result != null) return result;
+                    walker.GetFirstChildElement(element, out var child);
+                    while (child != null)
+                    {
+                        var result = ExtractTextFromElement(child, depth + 1);
+                        if (result != null) return result;
 
-                    walker.GetNextSiblingElement(child, out var next);
-                    child = next;
+                        walker.GetNextSiblingElement(child, out var next);
+                        child = next;
+                    }
                 }
             }
         }

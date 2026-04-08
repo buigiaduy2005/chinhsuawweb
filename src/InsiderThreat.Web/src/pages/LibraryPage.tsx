@@ -14,6 +14,7 @@ import SecureDocumentViewer from '../components/SecureDocumentViewer';
 import { preloadPhoneDetectorModel } from '../hooks/usePhoneDetector';
 import './LibraryPage.css';
 
+
 const DocxPreview = ({ docId }: { docId: string }) => {
     const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,7 @@ interface SharedDocument {
     requireCamera?: boolean;
     requireWatermark?: boolean;
     enableAgentMonitoring?: boolean;
+    disableMobileDownload?: boolean;
     department?: string;
     securityLevel?: string;
 }
@@ -117,6 +119,7 @@ const LibraryPage = () => {
     const [requireCamera, setRequireCamera] = useState(true);
     const [requireWatermark, setRequireWatermark] = useState(true);
     const [enableAgentMonitoring, setEnableAgentMonitoring] = useState(true);
+    const [disableMobileDownload, setDisableMobileDownload] = useState(false);
     const [department, setDepartment] = useState('General');
     const [securityLevel, setSecurityLevel] = useState('Internal');
     const [filterDept, setFilterDept] = useState('All');
@@ -186,6 +189,7 @@ const LibraryPage = () => {
         setRequireCamera(doc.requireCamera ?? true);
         setRequireWatermark(doc.requireWatermark ?? true);
         setEnableAgentMonitoring(doc.enableAgentMonitoring ?? true);
+        setDisableMobileDownload(doc.disableMobileDownload ?? false);
         setDepartment(doc.department || 'General');
         setSecurityLevel(doc.securityLevel || 'Internal');
         setIsEditModalVisible(true);
@@ -209,6 +213,7 @@ const LibraryPage = () => {
                 requireCamera,
                 requireWatermark,
                 enableAgentMonitoring,
+                disableMobileDownload,
                 department: department,
                 securityLevel: securityLevel
             });
@@ -288,6 +293,7 @@ const LibraryPage = () => {
             requireCamera,
             requireWatermark,
             enableAgentMonitoring,
+            disableMobileDownload,
             department,
             securityLevel
         },
@@ -307,6 +313,7 @@ const LibraryPage = () => {
                 setRequireCamera(true);
                 setRequireWatermark(true);
                 setEnableAgentMonitoring(true);
+                setDisableMobileDownload(false);
                 setDepartment('General');
                 setSecurityLevel('Internal');
             } else if (status === 'error') {
@@ -350,7 +357,7 @@ const LibraryPage = () => {
                         </Button>
                     )}
 
-                    <Avatar size={40} src="https://i.pravatar.cc/150?u=admin" style={{ marginLeft: 'auto' }} />
+
                 </header>
 
                 <div className="mobile-search-wrapper">
@@ -415,12 +422,15 @@ const LibraryPage = () => {
                                 const iconData = getFileIconColor(doc.fileName);
                                 const badgeStyle = getRoleBadgeStyle(doc.minimumRole);
                                 
-                                // Quyền tản xuống: Admin, Người tạo file, hoặc những người có trong danh sách AllowedDownloadUserIds
-                                const canDownload = user.role?.toLowerCase() === 'admin' || 
+                                // Quyền tải xuống: Admin, Người tạo file, hoặc những người có trong danh sách AllowedDownloadUserIds
+                                const userCanDownload = user.role?.toLowerCase() === 'admin' || 
                                                     user.role?.toLowerCase() === 'giám đốc' || 
                                                     user.role?.toLowerCase() === 'giam doc' || 
                                                     doc.uploaderId === user.id || 
                                                     (doc.allowedDownloadUserIds && doc.allowedDownloadUserIds.includes(user.id));
+                                
+                                // Nếu là mobile và bật chế độ ẩn download thì ghi đè quyền uCanDownload
+                                const finalCanDownload = userCanDownload && !(isMobile && doc.disableMobileDownload);
 
                                 return (
                                     <div key={doc.id} className="doc-card">
@@ -470,7 +480,7 @@ const LibraryPage = () => {
                                         </div>
 
                                         <div className="doc-actions">
-                                            {canDownload && (
+                                            {finalCanDownload && (
                                                 <button className="doc-action-btn" onClick={() => handleDownload(doc)} title={t('library.tooltip_download', "Tải xuống")}>
                                                     <span className="material-symbols-outlined">download</span>
                                                 </button>
@@ -658,6 +668,11 @@ const LibraryPage = () => {
                         <Switch checked={enableAgentMonitoring} onChange={setEnableAgentMonitoring} />
                     </div>
 
+                    <div className="upload-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="field-label" style={{ marginBottom: 0 }}>Ẩn nút tải xuống trên Mobile</label>
+                        <Switch checked={disableMobileDownload} onChange={setDisableMobileDownload} />
+                    </div>
+
                     <div className="upload-field">
                         <label className="field-label">{t('library.field_upload', 'Tải tệp lên')}</label>
                         <Dragger {...uploadProps} className="dragger-mobile">
@@ -832,6 +847,11 @@ const LibraryPage = () => {
                     <div className="upload-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label className="field-label" style={{ marginBottom: 0 }}>Kích hoạt Giám sát Agent (Chống copy/gửi file)</label>
                         <Switch checked={enableAgentMonitoring} onChange={setEnableAgentMonitoring} />
+                    </div>
+
+                    <div className="upload-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="field-label" style={{ marginBottom: 0 }}>Ẩn nút tải xuống trên Mobile</label>
+                        <Switch checked={disableMobileDownload} onChange={setDisableMobileDownload} />
                     </div>
                 </div>
 

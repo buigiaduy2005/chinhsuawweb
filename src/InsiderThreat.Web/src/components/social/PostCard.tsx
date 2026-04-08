@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 import api from '../../services/api';
 import { authService } from '../../services/auth';
+import { useTheme } from '../../context/ThemeContext';
 import { feedService } from '../../services/feedService';
 import styles from './PostCard.module.css';
 import { 
@@ -46,6 +47,8 @@ interface PostCardProps {
 
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#64748b'];
 const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated }) => {
+    const { theme } = useTheme();
+    const isDarkMode = theme === 'dark';
     const currentUser = authService.getCurrentUser();
     const userId = currentUser?.id || '';
     const userRole = currentUser?.role?.toLowerCase() || '';
@@ -176,7 +179,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
 
             {/* Post Content */}
             <div className={styles.content}>
-                <div className="mb-4 text-slate-800 dark:text-slate-200 text-[15px] leading-relaxed">
+                <div 
+                    className="mb-5 text-[18px] font-black leading-relaxed" 
+                >
                     {post.content}
                 </div>
                 
@@ -200,7 +205,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
 
                         {/* Admin Analytics Chart */}
                         {isAdmin && showChart && totalVotes > 0 && (
-                            <div className="admin-poll-analytics mb-6 p-4 rounded-2xl bg-white/50 backdrop-blur-md border border-blue-100 shadow-sm">
+                            <div className={`admin-poll-analytics mb-6 p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white/50 border-blue-100 backdrop-blur-md'}`}>
                                 <div className="text-[12px] font-semibold text-slate-500 mb-2 text-center uppercase tracking-widest">Tỉ lệ phản hồi</div>
                                 <div style={{ width: '100%', height: 180 }}>
                                     <ResponsiveContainer>
@@ -227,7 +232,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
                                     {chartData.map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-1.5">
                                             <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
-                                            <span className="text-[11px] text-slate-600 font-medium">{item.name}: {item.value}</span>
+                                            <span className={`text-[11px] font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{item.name}: {item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -247,28 +252,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, onPostDeleted, onPostUpdated 
                                     <div key={index} className="relative cursor-pointer group" onClick={() => handleVote(index)}>
                                         {showResult ? (
                                             <div className={`poll-result-bar ${myVote ? 'voted' : ''}`}>
-                                                <div 
-                                                    className="poll-progress-liquid"
-                                                    style={{ 
-                                                        width: `${percentage}%`,
-                                                        background: myVote 
-                                                            ? 'linear-gradient(90deg, #3b82f6, #60a5fa)' 
-                                                            : 'linear-gradient(90deg, #e2e8f0, #f1f5f9)'
-                                                    }}
-                                                />
-                                                <div className="relative z-10 flex justify-between items-center text-sm px-4 h-11">
-                                                    <span className={`font-semibold flex items-center gap-2 ${myVote ? 'text-blue-700' : 'text-slate-700'}`}>
-                                                        {opt.text} {myVote && <span className="bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5 text-[10px]">BẠN ĐÃ CHỌN</span>}
-                                                    </span>
-                                                    <span className="text-slate-500 font-bold">{percentage}%</span>
-                                                </div>
+                                                    <div 
+                                                        className="poll-progress-liquid"
+                                                        style={{ 
+                                                            width: `${percentage}%`,
+                                                            background: myVote 
+                                                                ? 'linear-gradient(90deg, #3b82f6, #60a5fa)' 
+                                                                : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'linear-gradient(90deg, #e2e8f0, #f1f5f9)')
+                                                        }}
+                                                    />
+                                                    <div className="relative z-10 flex justify-between items-center text-sm px-4 h-11">
+                                                        <span className={`font-bold flex items-center gap-2 ${myVote ? (isDarkMode ? 'text-blue-300' : 'text-blue-800') : (isDarkMode ? 'text-slate-200' : 'text-slate-900')}`}>
+                                                            {opt.text} {myVote && <span className={`${isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700'} rounded-full px-2 py-0.5 text-[10px] font-black`}>BẠN ĐÃ CHỌN</span>}
+                                                        </span>
+                                                        <span className={`${isDarkMode ? 'text-slate-100' : 'text-slate-900'} font-extrabold`}>{percentage}%</span>
+                                                    </div>
                                             </div>
                                         ) : (
                                             <div className="poll-option-interactive">
-                                                <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-blue-500 flex items-center justify-center transition-all">
+                                                <div className={`w-5 h-5 rounded-full border-2 ${isDarkMode ? 'border-slate-600' : 'border-slate-300'} group-hover:border-blue-500 flex items-center justify-center transition-all`}>
                                                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500 scale-0 group-hover:scale-100 transition-all" />
                                                 </div>
-                                                <span className="text-[14px] font-semibold text-slate-700">{opt.text}</span>
+                                                <span className={`text-[14px] font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>{opt.text}</span>
                                             </div>
                                         )}
                                     </div>

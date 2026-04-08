@@ -10,17 +10,19 @@ import {
     TeamOutlined,
     MessageOutlined,
     WarningOutlined,
+    SafetyOutlined,
+    DesktopOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { authService } from '../services/auth';
 import { attendanceService } from '../services/attendanceService';
 import { confirmLogout } from '../utils/logoutUtils';
-import UsbNotification from '../components/UsbNotification';
 import UsbAnalyticsChart from '../components/UsbAnalyticsChart';
 import BlockedDevicesTable from '../components/BlockedDevicesTable';
 import WhitelistTable from '../components/WhitelistTable';
 import RecentLogsTable from '../components/RecentLogsTable';
+import MonitorSummaryCards from '../components/MonitorSummaryCards';
 import UsersPage from './UsersPage';
 import PostManagementPage from './PostManagementPage';
 import DocumentsPage from './DocumentsPage';
@@ -29,12 +31,15 @@ import ReportsPage from './ReportsPage';
 import BottomNavigation from '../components/BottomNavigation';
 import './DashboardPage.css';
 
+
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 
 function DashboardPage() {
     const [collapsed, setCollapsed] = useState(false);
-    const [selectedKey, setSelectedKey] = useState('usb');
+    const [searchParams] = useSearchParams();
+    const initialTab = searchParams.get('tab') || 'usb';
+    const [selectedKey, setSelectedKey] = useState(initialTab);
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
     const { t } = useTranslation();
@@ -45,11 +50,11 @@ function DashboardPage() {
         }
     }, [user, navigate]);
 
-    // Navigate to /feed when Feed menu is selected
+    // Navigate to external routes when menu items are selected
     useEffect(() => {
-        if (selectedKey === 'feed') {
-            navigate('/feed');
-        }
+        if (selectedKey === 'feed') navigate('/feed');
+        if (selectedKey === 'watchdog') navigate('/watchdog');
+        if (selectedKey === 'monitor-logs') navigate('/monitor-logs');
     }, [selectedKey, navigate]);
 
     const handleLogout = () => {
@@ -104,6 +109,16 @@ function DashboardPage() {
             icon: <WarningOutlined />,
             label: t('dashboard.menu_reports', 'Báo cáo vi phạm'),
         });
+        menuItems.push({
+            key: 'monitor-logs',
+            icon: <DesktopOutlined />,
+            label: t('dashboard.menu_monitor', '🖥️ Giám sát Hành vi'),
+        });
+        menuItems.push({
+            key: 'watchdog',
+            icon: <SafetyOutlined />,
+            label: t('dashboard.menu_watchdog', '🛡️ Watchdog'),
+        });
     }
 
     const userMenuItems = [
@@ -157,7 +172,7 @@ function DashboardPage() {
         switch (selectedKey) {
             case 'usb':
                 return (
-                    <div className={`content-wrapper ${isMobile ? 'mobile-usb-content' : ''}`}>
+                    <div className="dashboard-container" style={{ padding: 24, background: 'var(--color-bg)', minHeight: '100vh' }}>
                         {!isMobile && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <Title level={2} style={{ margin: 0 }}>{t('dashboard.usb_title', '🔐 USB Device Management')}</Title>
@@ -173,20 +188,10 @@ function DashboardPage() {
                                 </Button>
                             </div>
                         )}
-                        {isMobile && (
-                            <header className="mobile-usb-header">
-                                <div className="mobile-usb-header-left">
-                                    <div className="usb-icon-badge">
-                                        <span className="material-symbols-outlined">shield</span>
-                                    </div>
-                                    <div className="usb-header-text">
-                                        <h1>{t('dashboard.usb_sec', 'USB Security')}</h1>
-                                        <p>{t('dashboard.admin_label', 'InsiderThreat Admin')}</p>
-                                    </div>
-                                </div>
-                                <Avatar size={40} src="https://i.pravatar.cc/150?u=admin" />
-                            </header>
-                        )}
+
+
+                        {/* 📊 THỐNG KÊ HÀNH VI HÔM NAY */}
+                        <MonitorSummaryCards />
 
                         {/* 📊 BIỂU ĐỒ PHÂN TÍCH USB */}
                         <UsbAnalyticsChart />
@@ -236,25 +241,25 @@ function DashboardPage() {
     const dashboardNavItems = [
         { icon: 'newspaper', label: t('dashboard.nav_feed', 'Feed'), path: '/feed' },
         ...(isAdminUser ? [
-            { icon: 'person_search', label: t('dashboard.nav_users', 'Users'), key: 'users', onClick: () => setSelectedKey('users') },
-            { icon: 'chat', label: t('dashboard.nav_posts', 'Posts'), key: 'posts', onClick: () => setSelectedKey('posts') },
-            { icon: 'report', label: t('dashboard.nav_reports', 'Vi phạm'), key: 'reports', onClick: () => setSelectedKey('reports') },
+            { icon: 'person_search', label: t('dashboard.menu_users', 'User Management'), key: 'users', onClick: () => setSelectedKey('users') },
+            { icon: 'forum', label: t('dashboard.menu_posts', 'Post Management'), key: 'posts', onClick: () => setSelectedKey('posts') },
+            { icon: 'report_problem', label: t('dashboard.menu_reports', 'Báo cáo vi phạm'), key: 'reports', onClick: () => setSelectedKey('reports') },
         ] : []),
-        { icon: 'usb', label: t('dashboard.nav_usb', 'USB'), key: 'usb', onClick: () => setSelectedKey('usb') },
-        { icon: 'folder_open', label: t('dashboard.nav_documents', 'Documents'), key: 'documents', onClick: () => setSelectedKey('documents') },
-        { icon: 'checklist', label: t('dashboard.nav_attendance', 'Attendance'), key: 'attendance', onClick: () => setSelectedKey('attendance') },
+        { icon: 'usb', label: t('dashboard.menu_usb', 'USB Management'), key: 'usb', onClick: () => setSelectedKey('usb') },
+        { icon: 'folder_managed', label: t('dashboard.menu_documents', 'Document Logs'), key: 'documents', onClick: () => setSelectedKey('documents') },
+        { icon: 'fact_check', label: t('dashboard.menu_attendance', 'Attendance'), key: 'attendance', onClick: () => setSelectedKey('attendance') },
+        ...(isAdminUser ? [
+            { icon: 'monitoring', label: t('dashboard.menu_monitor', 'Giám sát Hành vi'), path: '/monitor-logs' },
+            { icon: 'security', label: t('dashboard.menu_watchdog', 'Watchdog'), path: '/watchdog' },
+        ] : []),
     ];
 
     if (isMobile) {
         return (
             <div className="mobile-dashboard">
-                <UsbNotification userRole={user.role} />
                 <main className="mobile-main">
                     {renderContent()}
                 </main>
-                <div className="floating-action-btn">
-                    <span className="material-symbols-outlined">notifications</span>
-                </div>
                 <BottomNavigation items={dashboardNavItems} activeKey={selectedKey} />
             </div>
         );
@@ -262,9 +267,6 @@ function DashboardPage() {
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            {/* Real-time USB Notification */}
-            <UsbNotification userRole={user.role} />
-
             {/* Sidebar */}
             <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
                 <div className="logo">

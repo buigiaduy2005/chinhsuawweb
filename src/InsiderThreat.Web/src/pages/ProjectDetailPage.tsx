@@ -12,7 +12,8 @@ import { userService } from '../services/userService';
 import type { User } from '../types';
 import SynchroHeader from '../components/SynchroHeader';
 import ProjectSidebar from '../components/groups/ProjectSidebar';
-import { HistoryOutlined, ThunderboltFilled } from '@ant-design/icons';
+import { HistoryOutlined, ThunderboltFilled, MoreOutlined, SettingOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Dropdown, Menu } from 'antd';
 import './ProjectDetailPage.css';
 
 const TABS = [
@@ -30,7 +31,7 @@ export default function ProjectDetailPage() {
     const [groupName, setGroupName] = useState<string>('');
     const [projectStatus, setProjectStatus] = useState<string>('');
     const [projectPrivacy, setProjectPrivacy] = useState<string>('');
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [members, setMembers] = useState<any[]>([]);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -75,7 +76,7 @@ export default function ProjectDetailPage() {
     }, [id]);
 
     useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -89,10 +90,10 @@ export default function ProjectDetailPage() {
         };
 
         switch (activeTab) {
-            case 'dashboard': return <GroupDashboardTab onInviteClick={handleInviteTrigger} />;
-            case 'mytask': return <MyTaskTab />;
-            case 'timeline': return <TimelineTab />;
-            case 'files': return <FilesTab />;
+            case 'dashboard': return <GroupDashboardTab onInviteClick={handleInviteTrigger} activeTab={activeTab} onTabChange={setActiveTab} />;
+            case 'mytask': return <MyTaskTab activeTab={activeTab} onTabChange={setActiveTab} />;
+            case 'timeline': return <TimelineTab activeTab={activeTab} onTabChange={setActiveTab} />;
+            case 'files': return <FilesTab activeTab={activeTab} onTabChange={setActiveTab} />;
             default: return null;
         }
     };
@@ -149,6 +150,7 @@ export default function ProjectDetailPage() {
                         status={projectStatus}
                         privacy={projectPrivacy}
                         members={members}
+                        isMobile={isMobile}
                         onInviteClick={() => {
                             if (!allUsers.length) {
                                 userService.getAllUsers().then(setAllUsers).catch(console.error);
@@ -157,43 +159,44 @@ export default function ProjectDetailPage() {
                         }}
                     />
 
-                    <div className="groupDetail-top-section">
-                        {/* Sub-Header / Tab Navigation */}
-                        <div className="groupDetail-tabs-wrapper">
-                            <div className="groupDetail-tabs">
-                                {TABS.map(tab => (
-                                    <button
-                                        key={tab.key}
-                                        className={`tabItem ${activeTab === tab.key ? 'active' : ''}`}
-                                        onClick={() => setActiveTab(tab.key)}
-                                    >
-                                        <span className="material-symbols-outlined">{tab.icon}</span>
-                                        {t(tab.label)}
+                    {!isMobile && (
+                        <div className="groupDetail-top-section">
+                            <div className="groupDetail-tabs-wrapper">
+                                <div className="groupDetail-tabs">
+                                    {TABS.map(tab => (
+                                        <button
+                                            key={tab.key}
+                                            className={`tabItem ${activeTab === tab.key ? 'active' : ''}`}
+                                            onClick={() => setActiveTab(tab.key)}
+                                        >
+                                            <span className="material-symbols-outlined">{tab.icon}</span>
+                                            {t(tab.label)}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="project-actions">
+                                    <button className="proj-action-btn" onClick={() => setShowEditModal(true)} title="Cấu hình dự án">
+                                        <span className="material-symbols-outlined">settings</span>
                                     </button>
-                                ))}
-                            </div>
-                            <div className="project-actions">
-                                <button className="proj-action-btn" onClick={() => setShowEditModal(true)} title="Cấu hình dự án">
-                                    <span className="material-symbols-outlined">settings</span>
-                                </button>
-                                {!['1', '2', '3', '4'].includes(id || '') && (
-                                    <button 
-                                        className="proj-action-btn delete" 
-                                        onClick={handleDeleteProject}
-                                        title={t('project_detail.header.btn_delete')}
-                                    >
-                                        <span className="material-symbols-outlined">delete</span>
+                                    {!['1', '2', '3', '4'].includes(id || '') && (
+                                        <button 
+                                            className="proj-action-btn delete" 
+                                            onClick={handleDeleteProject}
+                                            title={t('project_detail.header.btn_delete')}
+                                        >
+                                            <span className="material-symbols-outlined">delete</span>
+                                        </button>
+                                    )}
+                                    <button className="proj-action-btn" onClick={() => setShowSidebar(true)}>
+                                        <ThunderboltFilled style={{ color: '#f59e0b' }} />
                                     </button>
-                                )}
-                                <button className="proj-action-btn" onClick={() => setShowSidebar(true)}>
-                                    <ThunderboltFilled style={{ color: '#f59e0b' }} />
-                                </button>
-                                <button className="proj-action-btn">
-                                    <span className="material-symbols-outlined">more_horiz</span>
-                                </button>
+                                    <button className="proj-action-btn">
+                                        <span className="material-symbols-outlined">more_horiz</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     <ProjectSidebar 
                         open={showSidebar} 

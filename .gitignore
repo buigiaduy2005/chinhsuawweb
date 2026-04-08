@@ -482,3 +482,11 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# CUSTOM EXCLUSIONS - Source Only Push
+*.exe
+[Tt]arget/
+[Pp]ublish_out/
+[Dd]ist/
+node_modules/
+.vite/

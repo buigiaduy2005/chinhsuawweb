@@ -31,8 +31,8 @@ namespace InsiderThreat.MonitorAgent.Services
                 
                 // Extract possible domain/site from title
                 // Title format usually: "Site Name - App Name" or "Page Title - Site Name - Browser"
-                var parts = windowTitle.Split(new[] { " - ", " – ", " | " }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 1)
+                var parts = windowTitle?.Split(new[] { " - ", " – ", " | " }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts != null && parts.Length > 1)
                 {
                     // Usually the last part is the browser, the one before it might be the site
                     for (int i = parts.Length - 2; i >= 0; i--)

@@ -176,3 +176,36 @@
 .inviteBtn:hover {
     opacity: 0.9;
 }
+/* Mobile Responsive */
+@media (max-width: 767px) {
+    .header {
+        height: auto;
+        min-height: 56px;
+        padding: 10px 16px;
+        flex-direction: row;
+        align-content: center;
+    }
+
+    .breadcrumbItem.active {
+        padding: 4px 8px;
+        font-size: 13px;
+        gap: 8px;
+    }
+
+    .headerBadges {
+        display: none; /* Hide badges on mobile to keep it single line */
+    }
+
+    .headerRight {
+        gap: 12px;
+    }
+
+    .searchWrapper, .actions, .divider {
+        display: none;
+    }
+
+    .inviteBtn {
+        min-width: unset;
+        padding: 4px 10px;
+    }
+}

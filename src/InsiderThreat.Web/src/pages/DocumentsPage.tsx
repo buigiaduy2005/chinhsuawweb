@@ -7,12 +7,20 @@ import type { LogEntry } from '../types';
 import type { ColumnsType } from 'antd/es/table';
 import DocumentAnalyticsChart from '../components/DocumentAnalyticsChart';
 
+
 const { Title, Text } = Typography;
 
 function DocumentsPage() {
     const { t } = useTranslation();
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const fetchLogs = async () => {
         setLoading(true);
@@ -96,13 +104,60 @@ function DocumentsPage() {
             <DocumentAnalyticsChart logs={logs} loading={loading} />
 
             <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <Table
-                    columns={columns}
-                    dataSource={logs}
-                    rowKey="id"
-                    loading={loading}
-                    locale={{ emptyText: t('docs.empty_text', 'Chưa có nhật ký truy cập tài liệu nào') }}
-                />
+                {isMobile ? (
+                    <div className="mobile-incident-list" style={{ padding: 0 }}>
+                        {logs.length === 0 ? (
+                            <div className="empty-incidents">
+                                <span className="material-symbols-outlined empty-icon">description</span>
+                                <h3>{t('docs.empty_text', 'Chưa có nhật ký truy cập tài liệu nào')}</h3>
+                            </div>
+                        ) : (
+                            <div className="incident-cards-container">
+                                {logs.map(log => {
+                                    let actionColor = 'default';
+                                    if (log.actionTaken === 'Read') actionColor = 'blue';
+                                    if (log.actionTaken === 'Write') actionColor = 'orange';
+                                    if (log.actionTaken === 'Delete') actionColor = 'red';
+                                    if (log.actionTaken === 'Create' || log.actionTaken === 'Created') actionColor = 'green';
+                                    if (log.actionTaken === 'Download') actionColor = 'cyan';
+                                    if (log.actionTaken === 'Cảnh báo Camera' || log.actionTaken === 'CameraWarning') actionColor = 'volcano';
+
+                                    return (
+                                        <div key={log.id} className="incident-card" style={{ borderRadius: 12 }}>
+                                            <div className="severity-bar" style={{ backgroundColor: actionColor === 'volcano' ? '#f5222d' : 'var(--ant-primary-color)' }} />
+                                            <div className="incident-card-content" style={{ padding: 12 }}>
+                                                <div className="incident-card-header">
+                                                    <Tag color={actionColor} style={{ margin: 0, fontWeight: 'bold' }}>{log.actionTaken}</Tag>
+                                                    <span className="time-ago" style={{ textAlign: 'right' }}>
+                                                        {new Date(log.timestamp).toLocaleTimeString('vi-VN')}
+                                                    </span>
+                                                </div>
+
+                                                <div className="device-info" style={{ gap: 12 }}>
+                                                    <FileTextOutlined style={{ fontSize: 20, color: '#1890ff', marginTop: 4 }} />
+                                                    <div className="device-details">
+                                                        <h3 className="device-name" style={{ fontSize: 13, wordBreak: 'break-all' }}>{log.message}</h3>
+                                                        <p className="incident-desc" style={{ fontSize: 12 }}>
+                                                            <strong>PC/User:</strong> {log.computerName}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <Table
+                        columns={columns}
+                        dataSource={logs}
+                        rowKey="id"
+                        loading={loading}
+                        locale={{ emptyText: t('docs.empty_text', 'Chưa có nhật ký truy cập tài liệu nào') }}
+                    />
+                )}
             </Card>
         </div>
     );

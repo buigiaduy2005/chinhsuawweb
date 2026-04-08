@@ -8,6 +8,7 @@ import { api, API_BASE_URL } from '../services/api';
 import type { User } from '../types';
 import './ProjectsPage.css';
 
+
 interface Project {
     id: string;
     name: string;
@@ -43,7 +44,8 @@ export default function ProjectsPage() {
     });
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [searchUserQuery, setSearchUserQuery] = useState('');
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [activeTab, setActiveTab] = useState('New'); // For mobile Kanban tabs
     
     // View and Filter State
     const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
@@ -51,7 +53,7 @@ export default function ProjectsPage() {
     const [timeFilter, setTimeFilter] = useState('Tuần này');
 
     useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -215,18 +217,18 @@ export default function ProjectsPage() {
                                 className={`viewBtn ${viewMode === 'list' ? 'active' : ''}`}
                                 onClick={() => setViewMode('list')}
                             >
-                                <span className="material-symbols-outlined">view_list</span> List View
+                                <span className="material-symbols-outlined">view_list</span> {isMobile ? '' : 'List View'}
                             </button>
                             <button 
                                 className={`viewBtn ${viewMode === 'board' ? 'active' : ''}`}
                                 onClick={() => setViewMode('board')}
                             >
-                                <span className="material-symbols-outlined">grid_view</span> Board View
+                                <span className="material-symbols-outlined">grid_view</span> {isMobile ? '' : 'Board View'}
                             </button>
                         </div>
                         <div className="filterControls">
                             <div className="filterGroup">
-                                <span className="material-symbols-outlined">person</span>
+                                <span className="material-symbols-outlined" style={{fontSize: 18}}>person</span>
                                 <select 
                                     className="filterSelect"
                                     value={privacyFilter}
@@ -237,27 +239,46 @@ export default function ProjectsPage() {
                                     <option>Riêng tư</option>
                                 </select>
                             </div>
-                            <div className="filterGroup">
-                                <select 
-                                    className="filterSelect"
-                                    value={timeFilter}
-                                    onChange={(e) => setTimeFilter(e.target.value)}
-                                >
-                                    <option>Tất cả</option>
-                                    <option>Tuần này</option>
-                                    <option>Tháng này</option>
-                                </select>
-                            </div>
+                            {!isMobile && (
+                                <div className="filterGroup">
+                                    <select 
+                                        className="filterSelect"
+                                        value={timeFilter}
+                                        onChange={(e) => setTimeFilter(e.target.value)}
+                                    >
+                                        <option>Tất cả</option>
+                                        <option>Tuần này</option>
+                                        <option>Tháng này</option>
+                                    </select>
+                                </div>
+                            )}
                             <button className="createCardBtn" onClick={() => setShowCreate(true)}>
-                                <span>+ TẠO DỰ ÁN MỚI</span>
+                                <span>{isMobile ? '+' : '+ TẠO DỰ ÁN MỚI'}</span>
                             </button>
                         </div>
                     </div>
 
+                    {/* Mobile Kanban Tabs */}
+                    {isMobile && viewMode === 'board' && (
+                        <div className="mobileKanbanTabs">
+                            {KANBAN_COLUMNS.map(col => (
+                                <button 
+                                    key={col.id}
+                                    className={`mobileTabItem ${activeTab === col.status ? 'active' : ''} ${col.colorClass}`}
+                                    onClick={() => setActiveTab(col.status)}
+                                >
+                                    {col.title.split(' ')[0]} {/* Short title for mobile */}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Content Area - Switch between Board and List */}
                     {viewMode === 'board' ? (
                         <div className="kanbanBoard">
-                            {KANBAN_COLUMNS.map(col => {
+                            {KANBAN_COLUMNS
+                                .filter(col => !isMobile || col.status === activeTab)
+                                .map(col => {
                                 const columnProjects = displayProjects.filter(p => p.status === col.status);
                                 return (
                                     <div key={col.id} className="kanbanColumn">
@@ -346,81 +367,125 @@ export default function ProjectsPage() {
                         </div>
                     ) : (
                         <div className="listViewContainer">
-                            <table className="projectsListTable">
-                                <thead>
-                                    <tr>
-                                        <th>Tên dự án</th>
-                                        <th>Ngày khởi tạo</th>
-                                        <th>Trạng thái</th>
-                                        <th>Thành viên</th>
-                                        <th>Thời hạn</th>
-                                        <th>Quyền</th>
-                                        <th>Hành động</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            {isMobile ? (
+                                <div className="mobileProjectCards">
                                     {displayProjects.map(project => (
-                                        <tr key={project.id} onClick={() => handleAccessProject(project.id)} className="clickableRow">
-                                            <td>
-                                                <div className="listProjectTitle">
-                                                    <span className="material-symbols-outlined projIcon">rocket_launch</span>
-                                                    <div>
-                                                        <div className="pName">{project.name}</div>
-                                                        <div className="pId">PRJ-{project.id?.substring(0, 4).toUpperCase()}</div>
-                                                    </div>
+                                        <div key={project.id} className="mobileProjCard" onClick={() => handleAccessProject(project.id)}>
+                                            <div className="mProjCardHeader">
+                                                <div className="mProjIcon">
+                                                    <span className="material-symbols-outlined">rocket_launch</span>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <div style={{ fontWeight: 500, color: '#4b5563' }}>
-                                                    {project.createdAt ? new Date(project.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN')}
+                                                <div className="mProjMeta">
+                                                    <div className="mProjName">{project.name}</div>
+                                                    <div className="mProjId">PRJ-{project.id?.substring(0, 4).toUpperCase()}</div>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <span className={`listStatusBadge ${KANBAN_COLUMNS.find(c => c.status === project.status)?.colorClass}`}>
-                                                    {KANBAN_COLUMNS.find(c => c.status === project.status)?.title}
+                                                <span className={`mProjStatus ${KANBAN_COLUMNS.find(c => c.status === project.status)?.colorClass}`}>
+                                                    {KANBAN_COLUMNS.find(c => c.status === project.status)?.title.split(' ')[0]}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <div className="listMembers">
-                                                    <div className="listAvatars">
+                                            </div>
+                                            <div className="mProjCardBody">
+                                                <div className="mProjDateInfo">
+                                                    <span className="material-symbols-outlined">calendar_month</span>
+                                                    <span>{project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '...'} - {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '...'}</span>
+                                                </div>
+                                                <div className="mProjMembers">
+                                                    <div className="mProjAvatars">
                                                         {project.memberAvatars?.map((av, i) => (
                                                             <img key={i} src={av} alt="M" />
                                                         ))}
                                                     </div>
-                                                    <span>{project.members} CTV</span>
+                                                    <span>{project.members} Thành viên</span>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <div className="listDates">
-                                                    {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '...'} - {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '...'}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`privacyTag ${project.privacy === 'PRIVATE' ? 'isPrivate' : 'isPublic'}`}>
+                                            </div>
+                                            <div className="mProjCardFooter">
+                                                <span className={`mPrivacyTag ${project.privacy === 'PRIVATE' ? 'isPrivate' : 'isPublic'}`}>
                                                     {project.privacy === 'PRIVATE' ? 'Riêng tư' : 'Công khai'}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <div className="listActions">
-                                                    <button className="rowActionBtn" onClick={(e) => { e.stopPropagation(); handleDeleteProject(e, project); }}>
+                                                <div className="mProjActions">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProject(e, project); }}>
                                                         <span className="material-symbols-outlined">delete</span>
                                                     </button>
-                                                    <button className="rowActionBtn access" onClick={(e) => { e.stopPropagation(); handleAccessProject(project.id); }}>
-                                                        <span className="material-symbols-outlined">login</span>
-                                                    </button>
+                                                    <button className="mAccessBtn">Truy cập</button>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </div>
+                                        </div>
                                     ))}
-                                    {displayProjects.length === 0 && (
+                                </div>
+                            ) : (
+                                <table className="projectsListTable">
+                                    <thead>
                                         <tr>
-                                            <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
-                                                Không có dự án nào khớp với bộ lọc.
-                                            </td>
+                                            <th>Tên dự án</th>
+                                            <th>Ngày khởi tạo</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thành viên</th>
+                                            <th>Thời hạn</th>
+                                            <th>Quyền</th>
+                                            <th>Hành động</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {displayProjects.map(project => (
+                                            <tr key={project.id} onClick={() => handleAccessProject(project.id)} className="clickableRow">
+                                                <td>
+                                                    <div className="listProjectTitle">
+                                                        <span className="material-symbols-outlined projIcon">rocket_launch</span>
+                                                        <div>
+                                                            <div className="pName">{project.name}</div>
+                                                            <div className="pId">PRJ-{project.id?.substring(0, 4).toUpperCase()}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div style={{ fontWeight: 500, color: '#4b5563' }}>
+                                                        {project.createdAt ? new Date(project.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN')}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`listStatusBadge ${KANBAN_COLUMNS.find(c => c.status === project.status)?.colorClass}`}>
+                                                        {KANBAN_COLUMNS.find(c => c.status === project.status)?.title}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="listMembers">
+                                                        <div className="listAvatars">
+                                                            {project.memberAvatars?.map((av, i) => (
+                                                                <img key={i} src={av} alt="M" />
+                                                            ))}
+                                                        </div>
+                                                        <span>{project.members} CTV</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="listDates">
+                                                        {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '...'} - {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '...'}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`privacyTag ${project.privacy === 'PRIVATE' ? 'isPrivate' : 'isPublic'}`}>
+                                                        {project.privacy === 'PRIVATE' ? 'Riêng tư' : 'Công khai'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="listActions">
+                                                        <button className="rowActionBtn" onClick={(e) => { e.stopPropagation(); handleDeleteProject(e, project); }}>
+                                                            <span className="material-symbols-outlined">delete</span>
+                                                        </button>
+                                                        <button className="rowActionBtn access" onClick={(e) => { e.stopPropagation(); handleAccessProject(project.id); }}>
+                                                            <span className="material-symbols-outlined">login</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                            {displayProjects.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                                    Không có dự án nào khớp với bộ lọc.
+                                </div>
+                            )}
                         </div>
                     )}
 

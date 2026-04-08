@@ -12,6 +12,10 @@
     letter-spacing: -0.02em;
 }
 
+:global(.dark) .logo {
+    color: var(--color-primary-light);
+}
+
 .site-header {
     background: var(--color-surface-glass);
     backdrop-filter: blur(12px);
@@ -79,6 +83,11 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
+:global(.dark) .site-content {
+    background: var(--color-surface);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
 .content-wrapper {
     max-width: 1400px;
     margin: 0 auto;
@@ -96,6 +105,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px;
+    background: var(--color-surface);
+}
+
+:global(.dark) .mobile-usb-header {
     background: var(--color-surface);
 }
 
@@ -134,6 +147,11 @@
     margin: 0 !important;
     background: var(--color-surface);
     padding: 0 10px;
+}
+
+:global(.dark) .mobile-tabs :global(.ant-tabs-nav) {
+    background: var(--color-surface);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 .mobile-tabs :global(.ant-tabs-tab) {
@@ -184,6 +202,11 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     display: flex;
     border: 1px solid var(--color-border);
+}
+
+:global(.dark) .incident-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .severity-bar {
@@ -261,6 +284,10 @@
     align-items: center;
 }
 
+:global(.dark) .attempt-info {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .attempt-avatar {
     width: 40px;
     height: 40px;
@@ -270,6 +297,10 @@
     align-items: center;
     justify-content: center;
     color: var(--color-text-muted);
+}
+
+:global(.dark) .attempt-avatar {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .attempt-details {

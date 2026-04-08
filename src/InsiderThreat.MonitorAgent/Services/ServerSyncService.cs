@@ -19,6 +19,8 @@ public class ServerSyncService
     private readonly ILogger<ServerSyncService> _logger;
     private readonly string _serverUrl;
     private bool _lastConnectivityState = false;
+    private bool _firstConnectivityCheck = true;
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
 
     public event Action<bool>? OnConnectivityChanged; // true = online, false = offline
 
@@ -36,6 +38,8 @@ public class ServerSyncService
             BaseAddress = new Uri(_serverUrl),
             Timeout = TimeSpan.FromSeconds(15)
         };
+
+        _logger.LogInformation("🌐 ServerSyncService initialized. Target server: {ServerUrl}", _serverUrl);
     }
 
     /// <summary>
@@ -67,15 +71,16 @@ public class ServerSyncService
 
     private void HandleConnectivityChange(bool isOnline)
     {
-        if (_lastConnectivityState != isOnline)
+        if (_firstConnectivityCheck || _lastConnectivityState != isOnline)
         {
+            _firstConnectivityCheck = false;
             _lastConnectivityState = isOnline;
             OnConnectivityChanged?.Invoke(isOnline);
 
             if (isOnline)
                 _logger.LogInformation("🌐 Network connectivity RESTORED. Starting sync...");
             else
-                _logger.LogWarning("⚠ Network connectivity LOST. Logs will be cached locally.");
+                _logger.LogWarning("⚠ Server UNREACHABLE at {ServerUrl}. Logs will be cached locally.", _serverUrl);
         }
     }
 
@@ -85,12 +90,13 @@ public class ServerSyncService
     /// </summary>
     public async Task SyncUnsyncedLogsAsync()
     {
+        if (!await _syncLock.WaitAsync(0)) return; // Skip if already syncing
         try
         {
             var unsyncedLogs = _db.GetUnsyncedLogs(50);
             if (unsyncedLogs.Count == 0) return;
 
-            _logger.LogInformation("Syncing {Count} unsynced logs to server...", unsyncedLogs.Count);
+            _logger.LogInformation("📤 Syncing {Count} unsynced logs to {Server}...", unsyncedLogs.Count, _serverUrl);
 
             // Send batch to server
             var payload = unsyncedLogs.Select(log => new
@@ -122,20 +128,49 @@ public class ServerSyncService
             }
             else
             {
-                _logger.LogWarning("Server returned {StatusCode} during sync. Will retry later.", response.StatusCode);
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("❌ Server returned {StatusCode} during sync. Body: {Body}", response.StatusCode, body);
             }
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning("Network error during sync: {Error}. Logs remain cached locally.", ex.Message);
+            _logger.LogWarning("❌ Network error during sync to {Server}: {Error}", _serverUrl, ex.Message);
         }
         catch (TaskCanceledException)
         {
-            _logger.LogWarning("Sync request timed out. Will retry later.");
+            _logger.LogWarning("⏱ Sync request to {Server} timed out. Will retry later.", _serverUrl);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during sync.");
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Trigger an immediate sync attempt for critical events.
+    /// Called by services that detect high-severity events.
+    /// </summary>
+    public async Task TriggerImmediateSyncAsync()
+    {
+        try
+        {
+            _logger.LogInformation("⚡ Immediate sync triggered for critical event...");
+            if (await IsServerReachableAsync())
+            {
+                await SyncUnsyncedLogsAsync();
+            }
+            else
+            {
+                _logger.LogWarning("⚠ Cannot sync immediately — server {Server} unreachable. Logs cached locally.", _serverUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Immediate sync failed: {Error}", ex.Message);
         }
     }
 
@@ -149,7 +184,10 @@ public class ServerSyncService
             "Screenshot" => $"[GIÁM SÁT] Phát hiện chụp màn hình bởi {log.ComputerUser} trên ứng dụng {log.ApplicationName}. Cửa sổ: {log.WindowTitle}",
             "KeywordDetected" => $"[GIÁM SÁT] Phát hiện từ khóa nhạy cảm \"{log.DetectedKeyword}\" bởi {log.ComputerUser}. Mức độ: {log.Severity}/10. Nội dung: \"{log.MessageContext}\"",
             "NetworkDisconnect" => $"[GIÁM SÁT] Phát hiện mất kết nối mạng trên máy {log.ComputerName} ({log.ComputerUser})",
-            _ => $"[GIÁM SÁT] Sự kiện: {log.EventType} bởi {log.ComputerUser}"
+            "DocumentLeak" => $"[CẢNH BÁO RÒ RỈ] Phát hiện tài liệu mật bị rò rỉ bởi {log.ComputerUser}. Ứng dụng: {log.ApplicationName}. {log.MessageContext}",
+            "ClipboardCopy" => $"[CẢNH BÁO CLIPBOARD] {log.ComputerUser} đã sao chép file mật vào clipboard. Ứng dụng: {log.ApplicationName}. {log.MessageContext}",
+            "FaceIDSpoofAttempt" => $"[CẢNH BÁO GIẢ MẠO] Phát hiện nỗ lực giả mạo FaceID bởi {log.ComputerUser} trên {log.ApplicationName}",
+            _ => $"[GIÁM SÁT] Sự kiện: {log.EventType} bởi {log.ComputerUser}. Chi tiết: {log.MessageContext}"
         };
     }
 

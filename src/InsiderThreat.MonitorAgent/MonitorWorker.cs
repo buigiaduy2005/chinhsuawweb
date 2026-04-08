@@ -93,6 +93,7 @@ public class MonitorWorker : BackgroundService
         _logger.LogInformation("========================================");
         _logger.LogInformation("  InsiderThreat MonitorAgent Starting");
         _logger.LogInformation("  Machine: {Name} | User: {User} | IP: {IP}", _computerName, _computerUser, _ipAddress);
+        _logger.LogInformation("  Server: {Server}", _config["AgentConfig:ServerUrl"] ?? "http://localhost:5038");
         _logger.LogInformation("========================================");
 
         // Wire up event handlers
@@ -156,6 +157,11 @@ public class MonitorWorker : BackgroundService
                     if (await _serverSync.IsServerReachableAsync())
                     {
                         await _serverSync.SyncUnsyncedLogsAsync();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠ Sync skipped — server unreachable. {Count} logs pending.", 
+                            _localDb.GetUnsyncedLogs(1).Count > 0 ? "Has" : "No");
                     }
                 }
 
@@ -225,6 +231,12 @@ public class MonitorWorker : BackgroundService
             _logger.LogWarning(
                 "🚨 ALERT [{Severity}/10]: Keyword \"{Keyword}\" detected in {App}. Risk: {Assessment}",
                 alert.Severity, alert.Keyword, appName, alert.RiskAssessment);
+
+            // Trigger immediate sync for high-severity alerts
+            if (alert.Severity >= 7)
+            {
+                _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
+            }
         }
     }
 
@@ -252,6 +264,8 @@ public class MonitorWorker : BackgroundService
 
         _localDb.InsertLog(log);
         _logger.LogWarning("📸 Screenshot alert saved. App: {App}, Window: {Window}", appName, windowTitle);
+        // Trigger immediate sync for screenshot events
+        _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
     }
 
     /// <summary>
@@ -277,6 +291,8 @@ public class MonitorWorker : BackgroundService
         };
 
         _localDb.InsertLog(log);
+        // Trigger immediate sync for screenshot tool detection
+        _ = Task.Run(() => _serverSync.TriggerImmediateSyncAsync());
     }
 
     /// <summary>
@@ -326,33 +342,36 @@ public class MonitorWorker : BackgroundService
         if (processes.Length == 0)
         {
             _logger.LogWarning("🛡️ WATCHDOG ALERT: {ProcessName} is NOT running! Restarting reverse watchdog...", wdProcessName);
-            
-            // Đường dẫn giả định tới file exe của Watchdog
-            string wdPath = Path.Combine(AppContext.BaseDirectory, "..", "InsiderThreat.Watchdog", "InsiderThreat.Watchdog.exe");
-            
-            // Thử tìm trong cùng thư mục (nếu build chung) hoặc theo cấu trúc source
-            if (!File.Exists(wdPath))
+
+            // Tìm theo cấu hình, sau đó thử các vị trí tương đối
+            string? wdPath = _config["AgentConfig:WatchdogPath"];
+
+            if (string.IsNullOrEmpty(wdPath) || !File.Exists(wdPath))
             {
-                // Fallback cho môi trường dev
-                wdPath = @"C:\InsiderThreat-System\InsiderThreat-System\src\InsiderThreat.Watchdog\bin\Debug\net8.0\InsiderThreat.Watchdog.exe";
+                // Tìm trong thư mục cùng cấp với agent
+                wdPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "InsiderThreat.Watchdog", "InsiderThreat.Watchdog.exe"));
             }
 
-            if (File.Exists(wdPath))
+            if (!File.Exists(wdPath))
             {
-                try
+                _logger.LogError("❌ Watchdog executable not found. Set AgentConfig:WatchdogPath in appsettings.json");
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = wdPath,
-                        UseShellExecute = true,
-                        CreateNoWindow = true
-                    });
-                    _logger.LogInformation("✅ Reverse Watchdog restarted successfully.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("❌ Failed to start watchdog: {msg}", ex.Message);
-                }
+                    FileName = wdPath,
+                    UseShellExecute = false,   // false để hoạt động trong cả Windows Service
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(wdPath)
+                });
+                _logger.LogInformation("✅ Reverse Watchdog restarted successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("❌ Failed to start watchdog: {msg}", ex.Message);
             }
         }
     }

@@ -5,10 +5,18 @@ import { api } from '../services/api';
 import type { Post } from '../types';
 import type { ColumnsType } from 'antd/es/table';
 
+
 function PostManagementPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const fetchPosts = async (page = 1, limit = 10) => {
         setLoading(true);
@@ -118,14 +126,75 @@ function PostManagementPage() {
                 <h2>📝 Quản lý Bài viết</h2>
             </div>
 
-            <Table
-                columns={columns}
-                dataSource={posts}
-                rowKey="id"
-                loading={loading}
-                pagination={pagination}
-                onChange={handleTableChange}
-            />
+            {isMobile ? (
+                <div className="mobile-incident-list">
+                    {posts.length === 0 && !loading ? (
+                        <div className="empty-incidents">
+                            <span className="material-symbols-outlined empty-icon">feed</span>
+                            <h3>Không có bài viết</h3>
+                            <p>Hệ thống hiện chưa có bài đăng nào.</p>
+                        </div>
+                    ) : (
+                        <div className="incident-cards-container">
+                            {posts.map(post => (
+                                <div key={post.id} className="incident-card">
+                                    <div className="incident-card-content">
+                                        <div className="incident-card-header">
+                                            <Avatar src={post.authorAvatarUrl} size={32} />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: 14 }}>{post.authorName}</div>
+                                                <Tag color={post.authorRole === 'Admin' ? 'red' : 'blue'} style={{ fontSize: 10, margin: 0 }}>
+                                                    {post.authorRole}
+                                                </Tag>
+                                            </div>
+                                            <Popconfirm
+                                                title="Xóa bài viết?"
+                                                onConfirm={() => handleDelete(post.id)}
+                                                okText="Xóa"
+                                                cancelText="Hủy"
+                                            >
+                                                <Button type="text" danger icon={<DeleteOutlined />} />
+                                            </Popconfirm>
+                                        </div>
+
+                                        <div className="incident-desc" style={{ color: 'var(--color-text-main)', fontSize: 14 }}>
+                                            {post.content}
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                                            <Space>
+                                                <Tag icon={<LikeOutlined />} color="blue">{post.likedBy?.length || 0}</Tag>
+                                                <Tag icon={<MessageOutlined />} color="green">{post.commentCount || 0}</Tag>
+                                            </Space>
+                                            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                                                {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+                                <Button 
+                                    onClick={() => handleTableChange({ ...pagination, current: pagination.current + 1 })}
+                                    disabled={pagination.current * pagination.pageSize >= pagination.total}
+                                    loading={loading}
+                                >
+                                    Xem thêm
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <Table
+                    columns={columns}
+                    dataSource={posts}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={pagination}
+                    onChange={handleTableChange}
+                />
+            )}
         </div>
     );
 }

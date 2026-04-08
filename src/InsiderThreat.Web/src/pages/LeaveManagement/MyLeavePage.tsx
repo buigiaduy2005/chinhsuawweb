@@ -8,6 +8,7 @@ import type { LeaveRequest, User } from '../../types';
 import dayjs from 'dayjs';
 import styles from './LeaveManagement.module.css';
 
+
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;

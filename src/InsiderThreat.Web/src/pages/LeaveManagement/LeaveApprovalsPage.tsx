@@ -3,6 +3,7 @@ import { Layout, Typography, Card, Table, Button, Modal, Input, Tag, message } f
 import { CheckOutlined, CloseOutlined, ExceptionOutlined } from '@ant-design/icons';
 import NavigationBar from '../../components/NavigationBar';
 import LeftSidebar from '../../components/LeftSidebar';
+import BottomNavigation from '../../components/BottomNavigation';
 import { leaveService } from '../../services/leaveService';
 import type { LeaveRequest } from '../../types';
 import dayjs from 'dayjs';
@@ -19,9 +20,13 @@ const LeaveApprovalsPage = () => {
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [processing, setProcessing] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     useEffect(() => {
         fetchPendingRequests();
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const fetchPendingRequests = async () => {
@@ -77,6 +82,16 @@ const LeaveApprovalsPage = () => {
         setRejectReason('');
     };
 
+    const getLeaveTypeName = (type: string) => {
+        const types: Record<string, string> = {
+            'Annual': 'Phép năm',
+            'Sick': 'Nghỉ ốm',
+            'Personal': 'Việc riêng',
+            'Maternity': 'Thai sản'
+        };
+        return types[type] || type;
+    };
+
     const columns = [
         {
             title: 'Nhân viên',
@@ -88,15 +103,7 @@ const LeaveApprovalsPage = () => {
             title: 'Loại phép',
             dataIndex: 'type',
             key: 'type',
-            render: (type: string) => {
-                const types: Record<string, string> = {
-                    'Annual': 'Phép năm',
-                    'Sick': 'Nghỉ ốm',
-                    'Personal': 'Việc riêng',
-                    'Maternity': 'Thai sản'
-                };
-                return <Tag color="blue">{types[type] || type}</Tag>;
-            }
+            render: (type: string) => <Tag color="blue">{getLeaveTypeName(type)}</Tag>
         },
         {
             title: 'Thời gian',
@@ -173,20 +180,71 @@ const LeaveApprovalsPage = () => {
                             </Card>
                         </div>
 
-                        {/* Approvals Table */}
+                        {/* Approvals Table/List */}
                         <Card className={styles.tableCard} title="Danh sách đơn chờ" bordered={false}>
-                            <Table 
-                                columns={columns} 
-                                dataSource={requests} 
-                                rowKey="id" 
-                                loading={loading}
-                                pagination={{ pageSize: 15 }}
-                                locale={{ emptyText: 'Không có đơn nào đang chờ duyệt' }}
-                            />
+                            {isMobile ? (
+                                <div className={styles.mobileList}>
+                                    {requests.length === 0 ? (
+                                        <div className={styles.emptyState}>Không có đơn nào đang chờ duyệt</div>
+                                    ) : (
+                                        requests.map((record) => (
+                                            <div key={record.id} className={styles.mobileCard}>
+                                                <div className={styles.cardHeader}>
+                                                    <Text strong style={{ fontSize: '16px' }}>{record.userName}</Text>
+                                                    <Tag color="blue">{getLeaveTypeName(record.type)}</Tag>
+                                                </div>
+                                                <div className={styles.cardBody}>
+                                                    <div className={styles.cardRow}>
+                                                        <Text type="secondary">Thời gian:</Text>
+                                                        <Text>{dayjs(record.startDate).format('DD/MM/YYYY')} - {dayjs(record.endDate).format('DD/MM/YYYY')}</Text>
+                                                    </div>
+                                                    <div className={styles.cardRow}>
+                                                        <Text type="secondary">Số ngày:</Text>
+                                                        <Text>{dayjs(record.endDate).diff(dayjs(record.startDate), 'day') + 1} ngày</Text>
+                                                    </div>
+                                                    <div className={styles.cardRow}>
+                                                        <Text type="secondary">Lý do:</Text>
+                                                        <Text>{record.reason || 'Không có lý do chi tiết'}</Text>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.cardActions}>
+                                                    <Button 
+                                                        type="primary" 
+                                                        icon={<CheckOutlined />} 
+                                                        onClick={() => handleApprove(record.id!)}
+                                                        block
+                                                        style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                                                    >
+                                                        Duyệt
+                                                    </Button>
+                                                    <Button 
+                                                        danger 
+                                                        icon={<CloseOutlined />} 
+                                                        onClick={() => openRejectModal(record.id!)}
+                                                        block
+                                                    >
+                                                        Từ chối
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            ) : (
+                                <Table 
+                                    columns={columns} 
+                                    dataSource={requests} 
+                                    rowKey="id" 
+                                    loading={loading}
+                                    pagination={{ pageSize: 15 }}
+                                    locale={{ emptyText: 'Không có đơn nào đang chờ duyệt' }}
+                                />
+                            )}
                         </Card>
                     </div>
                 </div>
             </Content>
+            <BottomNavigation />
 
             {/* Reject Modal */}
             <Modal

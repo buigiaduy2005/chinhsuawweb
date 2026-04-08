@@ -22,7 +22,7 @@ builder.Services.AddSingleton<IMongoClient>(s =>
 {
     var connStr = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") 
                   ?? mongoSettings.GetValue<string>("ConnectionString") 
-                  ?? "mongodb://admin:12345@192.168.230.128:27017/?authSource=admin";
+                  ?? "mongodb://admin:admin123@192.168.203.142:27017/?authSource=admin";
     
     return new MongoClient(connStr);
 });
@@ -53,10 +53,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowWebApp", policy =>
     {
         policy.WithOrigins(
-            "http://localhost:5173", "http://localhost:3000",
-            "http://127.0.0.1:5173", "http://127.0.0.1:3000",
+            "http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
+            "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000",
             "http://tauri.localhost", "https://tauri.localhost", "tauri://localhost",
             "http://150.95.104.244", "https://150.95.104.244",
+            "http://192.168.203.1", "https://192.168.203.1", "http://192.168.203.1:5173",
+            "http://192.168.203.142", "https://192.168.203.142", "http://192.168.203.142:5173",
             "https://tuyen-thda.io.vn", "https://www.tuyen-thda.io.vn")
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -66,7 +68,7 @@ builder.Services.AddCors(options =>
 
 // ─── 4. CẤU HÌNH JWT AUTHENTICATION ────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var rawKey = jwtSettings["Key"] ?? "InsiderThreatSystem_SuperSecretKey_2024_DoNotShare_ThisMustBe32CharsLong!";
+var rawKey = jwtSettings["Key"] ?? "[JWT_SECRET_KEY_MIN_32_CHARS]";
 var key = Encoding.UTF8.GetBytes(rawKey);
 
 builder.Services.AddAuthentication(options =>
@@ -111,6 +113,7 @@ builder.Services.AddScoped<InsiderThreat.Server.Services.IEmailService, InsiderT
 builder.Services.AddSingleton<InsiderThreat.Server.Services.IMessageEncryptionService, InsiderThreat.Server.Services.MessageEncryptionService>();
 builder.Services.AddScoped<InsiderThreat.Server.Services.IWatermarkService, InsiderThreat.Server.Services.WatermarkService>();
 builder.Services.AddSingleton<InsiderThreat.Server.Services.FileEncryptionService>();
+builder.Services.AddSingleton<InsiderThreat.Server.Services.WatchdogStatusService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddControllers();

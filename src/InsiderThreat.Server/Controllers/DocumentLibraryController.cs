@@ -5,11 +5,15 @@ using InsiderThreat.Server.Models;
 using InsiderThreat.Shared;
 using Microsoft.AspNetCore.Authorization;
 using MongoDB.Bson;
+using System.Linq;
+using InsiderThreat.Server.Services;
+using System.Collections.Generic;
 
 namespace InsiderThreat.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/documents")]
     [Authorize]
     public class DocumentLibraryController : ControllerBase
     {
@@ -17,19 +21,22 @@ namespace InsiderThreat.Server.Controllers
         private readonly IMongoCollection<User> _users;
         private readonly IGridFSBucket _gridFS;
         private readonly ILogger<DocumentLibraryController> _logger;
-        private readonly InsiderThreat.Server.Services.FileEncryptionService _encryptionService;
+        private readonly FileEncryptionService _encryptionService;
+        private readonly IWatermarkService _watermarkService;
 
         public DocumentLibraryController(
             IMongoDatabase database, 
             IGridFSBucket gridFS, 
             ILogger<DocumentLibraryController> logger,
-            InsiderThreat.Server.Services.FileEncryptionService encryptionService)
+            FileEncryptionService encryptionService,
+            IWatermarkService watermarkService)
         {
             _documents = database.GetCollection<SharedDocument>("SharedDocuments");
             _users = database.GetCollection<User>("Users");
             _gridFS = gridFS;
             _logger = logger;
             _encryptionService = encryptionService;
+            _watermarkService = watermarkService;
         }
 
         [HttpGet]
@@ -76,6 +83,7 @@ namespace InsiderThreat.Server.Controllers
             [FromForm] bool requireCamera = true,
             [FromForm] bool requireWatermark = true,
             [FromForm] bool enableAgentMonitoring = true,
+            [FromForm] bool disableMobileDownload = false,
             [FromForm] string? department = "General",
             [FromForm] string? securityLevel = "Internal")
         {
@@ -157,6 +165,7 @@ namespace InsiderThreat.Server.Controllers
                     RequireCamera = requireCamera,
                     RequireWatermark = requireWatermark,
                     EnableAgentMonitoring = enableAgentMonitoring,
+                    DisableMobileDownload = disableMobileDownload,
                     Department = department ?? "General",
                     SecurityLevel = securityLevel ?? "Internal"
                 };
@@ -246,7 +255,8 @@ namespace InsiderThreat.Server.Controllers
                 .Set(d => d.AllowedDownloadUserIds, request.AllowedDownloadUserIds ?? doc.AllowedDownloadUserIds)
                 .Set(d => d.RequireCamera, request.RequireCamera)
                 .Set(d => d.RequireWatermark, request.RequireWatermark)
-                .Set(d => d.EnableAgentMonitoring, request.EnableAgentMonitoring);
+                .Set(d => d.EnableAgentMonitoring, request.EnableAgentMonitoring)
+                .Set(d => d.DisableMobileDownload, request.DisableMobileDownload);
 
             if (!string.IsNullOrEmpty(request.Department))
                 update = update.Set(d => d.Department, request.Department);
@@ -287,9 +297,30 @@ namespace InsiderThreat.Server.Controllers
                 using var encryptedStream = await _gridFS.OpenDownloadStreamAsync(fileId);
                 var outputStream = new MemoryStream();
 
-                // 🔓 GIẢI MÃ TRONG BỘ NHỚ (Military-grade decryption)
-                await _encryptionService.DecryptStreamAsync(encryptedStream, outputStream);
+                var fileInfo = await _gridFS.Find(Builders<GridFSFileInfo>.Filter.Eq("_id", fileId)).FirstOrDefaultAsync();
+                bool isEncrypted = fileInfo?.Metadata != null && fileInfo.Metadata.Contains("isEncrypted") && fileInfo.Metadata["isEncrypted"].AsBoolean;
+
+                if (isEncrypted)
+                {
+                    // 🔓 GIẢI MÃ TRONG BỘ NHỚ (Military-grade decryption)
+                    await _encryptionService.DecryptStreamAsync(encryptedStream, outputStream);
+                }
+                else
+                {
+                    await encryptedStream.CopyToAsync(outputStream);
+                }
+                
                 outputStream.Position = 0;
+
+                // 🛡️ Apply watermark if agent monitoring is enabled
+                var extension = Path.GetExtension(doc.FileName).ToLowerInvariant();
+                if (doc.EnableAgentMonitoring && (extension == ".docx" || extension == ".pdf"))
+                {
+                    var trackingId = doc.Id ?? Guid.NewGuid().ToString();
+                    _logger.LogInformation("Applying watermark to {FileName} with tracking ID: {TrackingId}", doc.FileName, trackingId);
+                    var watermarkedStream = _watermarkService.ApplyWatermark(outputStream, extension, trackingId);
+                    return File(watermarkedStream, doc.ContentType, doc.FileName);
+                }
 
                 return File(outputStream, doc.ContentType, doc.FileName);
             }
@@ -311,6 +342,57 @@ namespace InsiderThreat.Server.Controllers
                 _ => 1
             };
         }
+
+        [HttpGet("download/{id}")]
+        public async Task<IActionResult> DownloadFileByGridFSId(string id)
+        {
+            if (!ObjectId.TryParse(id, out var fileObjectId))
+                return BadRequest("Invalid file ID format");
+
+            try
+            {
+                using var encryptedStream = await _gridFS.OpenDownloadStreamAsync(fileObjectId);
+                var outputStream = new MemoryStream();
+
+                var fileInfo = await _gridFS.Find(Builders<GridFSFileInfo>.Filter.Eq("_id", fileObjectId)).FirstOrDefaultAsync();
+                if (fileInfo == null) return NotFound();
+
+                bool isEncrypted = fileInfo.Metadata != null && fileInfo.Metadata.Contains("isEncrypted") && fileInfo.Metadata["isEncrypted"].AsBoolean;
+
+                if (isEncrypted)
+                {
+                    await _encryptionService.DecryptStreamAsync(encryptedStream, outputStream);
+                }
+                else
+                {
+                    await encryptedStream.CopyToAsync(outputStream);
+                }
+
+                outputStream.Position = 0;
+
+                // 🛡️ Apply watermark for agent monitoring
+                var ext = Path.GetExtension(fileInfo.Filename).ToLowerInvariant();
+                if (ext == ".docx" || ext == ".pdf")
+                {
+                    var trackingId = id;
+                    _logger.LogInformation("Applying watermark to {FileName} with tracking ID: {TrackingId}", fileInfo.Filename, trackingId);
+                    var watermarkedStream = _watermarkService.ApplyWatermark(outputStream, ext, trackingId);
+                    var contentType = fileInfo.Metadata != null && fileInfo.Metadata.Contains("contentType") ? fileInfo.Metadata["contentType"].AsString : "application/octet-stream";
+                    return File(watermarkedStream, contentType, fileInfo.Filename);
+                }
+
+                return File(outputStream, fileInfo.Metadata != null && fileInfo.Metadata.Contains("contentType") ? fileInfo.Metadata["contentType"].AsString : "application/octet-stream", fileInfo.Filename);
+            }
+            catch (GridFSFileNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error downloading file {id} from GridFS");
+                return StatusCode(500, "Internal server error during file retrieval");
+            }
+        }
     }
 
     public class UpdatePermissionsRequest
@@ -321,6 +403,7 @@ namespace InsiderThreat.Server.Controllers
         public bool RequireCamera { get; set; } = true;
         public bool RequireWatermark { get; set; } = true;
         public bool EnableAgentMonitoring { get; set; } = true;
+        public bool DisableMobileDownload { get; set; } = false;
         public string? Department { get; set; }
         public string? SecurityLevel { get; set; }
     }

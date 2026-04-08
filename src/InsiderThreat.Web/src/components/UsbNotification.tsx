@@ -29,10 +29,11 @@ function UsbNotification({ userRole }: UsbNotificationProps) {
         if (userRole !== 'Admin') return;
 
         // Tạo kết nối SignalR
+        const token = localStorage.getItem('token');
         const newConnection = new signalR.HubConnectionBuilder()
-            .withUrl(`${API_BASE_URL}/hubs/system`)
-            // .withAutomaticReconnect() // Tắt auto-reconnect để tránh infinite loop
-            .configureLogging(signalR.LogLevel.Warning) // Giảm log spam
+            .withUrl(`${API_BASE_URL}/hubs/system`, token ? { accessTokenFactory: () => token } : {})
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+            .configureLogging(signalR.LogLevel.Warning)
             .build();
 
         setConnection(newConnection);
@@ -59,8 +60,6 @@ function UsbNotification({ userRole }: UsbNotificationProps) {
                 })
                 .catch((err) => {
                     console.error('❌ SignalR connection error:', err);
-                    // Don't retry if connection fails - prevents infinite loop
-                    connection.stop();
                 });
 
             return () => {
@@ -122,7 +121,7 @@ function UsbNotification({ userRole }: UsbNotificationProps) {
             ]}
             width={500}
         >
-            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
                 <div style={{ textAlign: 'center' }}>
                     <WarningOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
                     <Title level={4} style={{ marginTop: 16 }}>

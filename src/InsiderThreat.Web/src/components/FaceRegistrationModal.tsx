@@ -14,7 +14,7 @@ interface FaceRegistrationModalProps {
     userName: string;
 }
 
-type Phase = 'loading_model' | 'ready' | 'capturing' | 'saving' | 'done' | 'error';
+type Phase = 'loading_model' | 'already_registered' | 'ready' | 'capturing' | 'saving' | 'done' | 'error';
 
 function FaceRegistrationModal({ visible, onCancel, userId, userName }: FaceRegistrationModalProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,6 +50,17 @@ function FaceRegistrationModal({ visible, onCancel, userId, userName }: FaceRegi
         const init = async () => {
             try {
                 setPhase('loading_model');
+                setStatusText('Đang kiểm tra...');
+                setProgress(10);
+
+                // Kiểm tra xem user đã đăng ký khuôn mặt chưa
+                const currentUser = authService.getCurrentUser();
+                if (currentUser?.faceEmbeddings && currentUser.faceEmbeddings.length > 0) {
+                    setPhase('already_registered');
+                    setStatusText('Tài khoản này đã đăng ký khuôn mặt rồi.');
+                    return;
+                }
+
                 setStatusText('Đang tải mô hình AI...');
                 setProgress(20);
                 await loadFaceApiModels();
@@ -190,6 +201,14 @@ function FaceRegistrationModal({ visible, onCancel, userId, userName }: FaceRegi
                         width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)',
                         display: phase === 'ready' ? 'block' : 'none'
                     }} />
+
+                    {phase === 'already_registered' && (
+                        <div style={{ color: '#fff', textAlign: 'center', padding: 24 }}>
+                            <CheckCircleFilled style={{ fontSize: 48, color: '#faad14' }} />
+                            <div style={{ marginTop: 12, fontSize: 15, fontWeight: 600 }}>Khuôn mặt đã được đăng ký</div>
+                            <div style={{ marginTop: 6, color: '#aaa', fontSize: 13 }}>Mỗi tài khoản chỉ được đăng ký 1 khuôn mặt. Liên hệ admin để đặt lại.</div>
+                        </div>
+                    )}
 
                     {(phase === 'loading_model') && (
                         <div style={{ color: '#aaa', textAlign: 'center' }}>

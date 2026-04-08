@@ -10,7 +10,9 @@ import {
 } from '@ant-design/icons';
 import { api, API_BASE_URL } from '../../services/api';
 import FilePreviewModal from './FilePreviewModal';
+import ProjectMobileTabs from './ProjectMobileTabs';
 import './FilesTab.css';
+import './ProjectMobileTabs.css';
 
 interface FileItem {
     id: string;
@@ -19,7 +21,7 @@ interface FileItem {
     contentType: string;
     size: number;
     uploaderName: string;
-    uploadDate: string;
+    uploadedAt: string;
 }
 
 const FILE_ICONS_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
@@ -41,7 +43,12 @@ interface Member {
     roleLevel?: string;
 }
 
-export default function FilesTab() {
+interface FilesTabProps {
+    activeTab?: string;
+    onTabChange?: (key: string) => void;
+}
+
+export default function FilesTab({ activeTab, onTabChange }: FilesTabProps) {
     const { id: groupId } = useParams<{ id: string }>();
     const { t } = useTranslation();
     const [files, setFiles] = useState<FileItem[]>([]);
@@ -83,7 +90,7 @@ export default function FilesTab() {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('description', `${t('project_detail.breadcrumbs.projects')}: ${file.name}`);
-                await api.post(`/api/groups/${groupId}/files`, formData);
+                await api.postForm(`/api/groups/${groupId}/files`, formData);
             }
             message.success(t('library.upload_success', { name: 'Files' }));
             fetchData();
@@ -160,6 +167,11 @@ export default function FilesTab() {
                     }} />
                 </div>
             </div>
+
+            {/* Mobile Tabs Relocated Below Search Bar */}
+            {activeTab && onTabChange && (
+                <ProjectMobileTabs activeTab={activeTab} onTabChange={onTabChange} />
+            )}
 
             <div className="files-main-layout">
                 <div className="files-content-area">

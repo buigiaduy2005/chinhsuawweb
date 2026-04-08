@@ -14,7 +14,9 @@ import { api } from '../../services/api';
 import { signalRService } from '../../services/signalRService';
 import CreateTaskModal from './CreateTaskModal';
 import TaskDetailDrawer from './TaskDetailDrawer';
+import ProjectMobileTabs from './ProjectMobileTabs';
 import './MyTaskTab.css';
+import './ProjectMobileTabs.css';
 
 interface Task {
     id: string;
@@ -50,7 +52,12 @@ interface Member {
     avatarUrl?: string;
 }
 
-export default function MyTaskTab() {
+interface MyTaskTabProps {
+    activeTab?: string;
+    onTabChange?: (key: string) => void;
+}
+
+export default function MyTaskTab({ activeTab, onTabChange }: MyTaskTabProps) {
     const { id: groupId } = useParams<{ id: string }>();
     const { t } = useTranslation();
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -252,6 +259,11 @@ export default function MyTaskTab() {
                     )}
                 </div>
             </div>
+
+            {/* Mobile Tabs Relocated Below Search Bar */}
+            {activeTab && onTabChange && (
+                <ProjectMobileTabs activeTab={activeTab} onTabChange={onTabChange} />
+            )}
 
             {/* Task Calendar (Timeline Bubble) */}
             <div className="task-timeline-wrapper animate-in">

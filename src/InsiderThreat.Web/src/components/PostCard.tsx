@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { feedService } from '../services/feedService';
 import { API_BASE_URL } from '../services/api';
@@ -430,51 +430,45 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
     // For simplicity, let's use Emoji for all ACTIVE states, and Material Icon for INACTIVE.
 
     return (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 mb-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300">
-            <div className="flex justify-between items-start mb-3">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-all duration-500 group/card">
+            {/* ── HEADER: Avatar + Name + Meta ── */}
+            <div className="flex justify-between items-start px-4 pt-4 pb-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[var(--color-surface-lighter)] overflow-hidden">
+                    <div className="w-11 h-11 rounded-full bg-slate-100 ring-2 ring-[var(--color-surface-lighter)] overflow-hidden flex-shrink-0 shadow-sm transition-transform group-hover/card:scale-105 duration-500">
                         <img src={getAvatarUrl(localPost.authorAvatarUrl)} alt={localPost.authorName} className="w-full h-full object-cover" />
                     </div>
-                    <div>
-                        <Link to={`/profile/${localPost.authorId}`} className="font-semibold text-[var(--color-text-main)] hover:underline">
+                    <div className="flex flex-col">
+                        <Link to={`/profile/${localPost.authorId}`} className="font-bold text-[16px] text-[var(--color-text-main)] hover:text-[var(--color-primary)] transition-colors leading-tight">
                             {localPost.authorName}
                         </Link>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] text-slate-500" title={formatDateTime(localPost.createdAt)}>
+                            <span className="text-[12px] text-[var(--color-text-muted)] font-medium" title={formatDateTime(localPost.createdAt)}>
                                 {formatTimeAgo(localPost.createdAt)}
-                            </span>
-                            <span className="text-[10px] text-slate-300">·</span>
-                            <span className="text-[10px] text-slate-400">{formatDateTime(localPost.createdAt).split('·')[0].trim()}</span>
-
-                            {/* Category Badge */}
+                            </span >
+                            <span className="text-[10px] text-slate-300">•</span>
+                            <span className="text-[var(--color-text-muted)] flex items-center">{getPrivacyIcon(localPost.privacy)}</span>
+                            
                             {localPost.category && localPost.category !== 'General' && (
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${localPost.category === 'Security' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                    localPost.category === 'Announcement' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                <>
+                                    <span className="text-[10px] text-slate-300">•</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                        localPost.category === 'Security' ? 'bg-red-50 text-red-500 border border-red-100' :
+                                        localPost.category === 'Announcement' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                        'bg-blue-50 text-blue-500 border border-blue-100'
                                     }`}>
-                                    {localPost.category}
-                                </span>
+                                        {localPost.category}
+                                    </span>
+                                </>
                             )}
-
-                            {/* Visibility Badge */}
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                {getPrivacyIcon(localPost.privacy)}
-                                {localPost.allowedDepartments && localPost.allowedDepartments.length > 0
-                                    ? `${localPost.allowedDepartments.join(', ')} Dept`
-                                    : localPost.allowedRoles && localPost.allowedRoles.length > 0
-                                        ? `${localPost.allowedRoles.join(', ')} Only`
-                                        : 'Everyone'}
-                            </span>
                         </div>
                     </div>
                 </div>
                 <div className="relative" ref={menuRef}>
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] p-1 rounded-full hover:bg-[var(--color-surface-lighter)]">
-                        <span className="material-symbols-outlined">more_horiz</span>
+                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-50 transition-colors">
+                        <span className="material-symbols-outlined text-[22px]">more_horiz</span>
                     </button>
                     {isMenuOpen && (
-                        <div className="absolute right-0 top-8 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-lg z-10 w-32 py-1 flex flex-col">
+                        <div className="absolute right-0 top-10 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl z-20 w-44 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-200">
                             {currentUser?.role === 'Admin' && (
                                 <>
                                     <button onClick={async () => {
@@ -483,81 +477,76 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                                         setLocalPost(updated);
                                         onPostUpdated(updated);
                                         setIsMenuOpen(false);
-                                    }} className="text-left px-4 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-sm">push_pin</span> {localPost.isPinned ? 'Unpin' : 'Pin'}
+                                    }} className="w-full text-left px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">push_pin</span> {localPost.isPinned ? 'Bỏ ghim' : 'Ghim bài viết'}
                                     </button>
-                                    <button onClick={handleHide} className="text-left px-4 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-sm">visibility_off</span> Hide
+                                    <button onClick={handleHide} className="w-full text-left px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">visibility_off</span> Ẩn bài viết
                                     </button>
                                 </>
                             )}
                             {isOwner && (
                                 <>
-                                    <button onClick={() => { setIsEditing(true); setIsMenuOpen(false); }} className="text-left px-4 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-sm">edit</span> Edit
+                                    <button onClick={() => { setIsEditing(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">edit</span> Chỉnh sửa
                                     </button>
-                                    <button onClick={handleDelete} className="text-left px-4 py-2 text-sm text-red-500 hover:bg-[#3b4754] flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-sm">delete</span> Delete
+                                    <button onClick={handleDelete} className="w-full text-left px-4 py-2 text-[13px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                        <span className="material-symbols-outlined text-[18px]">delete</span> Xóa bài
                                     </button>
                                 </>
                             )}
-                            {/* Every post can be reported (except maybe own?) */}
-                            <button onClick={handleReport} className="text-left px-4 py-2 text-sm text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-sm">flag</span> Report
+                            <button onClick={handleReport} className="w-full text-left px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors">
+                                <span className="material-symbols-outlined text-[18px]">flag</span> Báo cáo nội dung
                             </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="post-content-text">
+            {/* ── BODY: Content Text ── */}
+            <div className="px-4 pb-4">
                 {localPost.isUrgent && (
-                    <div className="flex items-center gap-2 text-sm bg-red-600 text-white px-4 py-3 rounded-lg mb-3 font-bold animate-pulse border-2 border-red-400">
-                        <span className="material-symbols-outlined fill-current animate-bounce">emergency</span>
-                        <div className="flex-1">
-                            <div className="font-extrabold uppercase tracking-wide">URGENT / EMERGENCY</div>
-                            {localPost.urgentReason && <div className="text-xs font-normal mt-0.5 opacity-90">{localPost.urgentReason}</div>}
+                    <div className="flex items-center gap-3 text-xs bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4 font-bold border border-red-100 shadow-sm animate-pulse-subtle">
+                        <span className="material-symbols-outlined text-[20px] fill-current">error</span>
+                        <div className="flex-1 uppercase tracking-wider">KHẨN CẤP / QUAN TRỌNG</div>
+                    </div>
+                )}
+                
+                <div className="text-[15px] text-slate-700 leading-[1.6] whitespace-pre-wrap">
+                    {isEditing ? (
+                        <div className="flex flex-col gap-3 mt-1">
+                            <textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] text-slate-800 w-full outline-none focus:border-[var(--color-primary)] ring-offset-2 focus:ring-2 focus:ring-[var(--color-primary)]/10"
+                                rows={4}
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => { setIsEditing(false); setEditContent(localPost.content); }} className="px-4 py-1.5 text-[13px] font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Hủy</button>
+                                <button onClick={handleEditSave} className="px-4 py-1.5 text-[13px] font-semibold bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-dark)] shadow-sm">Lưu</button>
+                            </div>
                         </div>
-                        <span className="material-symbols-outlined fill-current">warning</span>
-                    </div>
-                )}
-                {localPost.isPinned && (
-                    <div className="flex items-center gap-2 text-xs text-[#137fec] mb-2 font-semibold">
-                        <span className="material-symbols-outlined text-sm fill-current">push_pin</span> Pinned Post
-                    </div>
-                )}
-                {isEditing ? (
-                    <div className="flex flex-col gap-2">
-                        <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            className="bg-slate-50 border border-[var(--color-border)] rounded-lg p-2 text-slate-900 w-full outline-none focus:border-[var(--color-primary)]"
-                            rows={3}
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button onClick={() => { setIsEditing(false); setEditContent(localPost.content); }} className="text-xs text-slate-500 hover:text-slate-900">Cancel</button>
-                            <button onClick={handleEditSave} className="text-xs bg-[#137fec] text-white px-3 py-1 rounded hover:bg-[#137fec]/90">Save</button>
-                        </div>
-                    </div>
-                ) : (
-                    <p>{localPost.content}</p>
-                )}
+                    ) : (
+                        <p>{localPost.content}</p>
+                    )}
+                </div>
 
                 {/* Poll Rendering */}
                 {localPost.type === 'Poll' && localPost.pollOptions && (
-                    <div className="mt-4 p-4 bg-[var(--color-surface-lighter)] border border-[var(--color-border)] rounded-xl">
+                    <div className="mt-4 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl shadow-inner">
                         <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-bold text-[var(--color-text-main)] flex items-center gap-2">
-                                <span className="material-symbols-outlined text-blue-500">ballot</span>
+                            <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-blue-500 text-[20px]">ballot</span>
                                 Bình chọn
                             </h4>
                             {localPost.pollEndsAt && (
-                                <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                                    Hết hạn: {formatDateTime(localPost.pollEndsAt)}
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                    HẾT HẠN: {formatDateTime(localPost.pollEndsAt)}
                                 </span>
                             )}
                         </div>
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2.5">
                             {localPost.pollOptions.map((option, idx) => {
                                 const totalVotes = localPost.pollOptions!.reduce((acc, opt) => acc + (opt.voterIds?.length || 0), 0);
                                 const vCount = option.voterIds?.length || 0;
@@ -570,140 +559,164 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                                         key={idx}
                                         disabled={isExpired}
                                         onClick={() => handleVote(idx)}
-                                        className={`relative w-full text-left p-3 rounded-lg border transition-all overflow-hidden group ${hasVoted ? 'border-blue-500 bg-blue-50/10' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-slate-400'
-                                            } ${isExpired ? 'cursor-not-allowed opacity-80' : ''}`}
+                                        className={`relative w-full text-left p-3.5 rounded-xl border transition-all overflow-hidden group/poll ${hasVoted ? 'border-primary/30 bg-primary/5' : 'border-slate-200 bg-white hover:border-slate-300'
+                                            } ${isExpired ? 'cursor-not-allowed opacity-85' : ''}`}
                                     >
-                                        {/* Progress Bar Background */}
                                         <div
-                                            className={`absolute left-0 top-0 bottom-0 transition-all duration-700 ${hasVoted ? 'bg-blue-500/10' : 'bg-slate-100'}`}
+                                            className={`absolute left-0 top-0 bottom-0 transition-all duration-1000 ease-out ${hasVoted ? 'bg-[var(--color-primary)]/10' : 'bg-slate-50'}`}
                                             style={{ width: `${percentage}%` }}
                                         />
                                         <div className="relative z-10 flex justify-between items-center">
-                                            <div className="flex items-center gap-2">
-                                                {hasVoted && <span className="material-symbols-outlined text-blue-500 text-lg">check_circle</span>}
-                                                <span className={`font-medium ${hasVoted ? 'text-blue-600' : 'text-[var(--color-text-main)]'}`}>{option.text}</span>
+                                            <div className="flex items-center gap-2.5">
+                                                {hasVoted ? <span className="material-symbols-outlined text-[var(--color-primary)] fill-current text-[20px]">check_circle</span> : <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover/poll:border-primary/40 transition-colors" />}
+                                                <span className={`text-[14px] font-semibold ${hasVoted ? 'text-[var(--color-primary)]' : 'text-slate-700'}`}>{option.text}</span>
                                             </div>
-                                            <div className="text-sm font-bold text-slate-500">
-                                                {percentage}% ({vCount})
+                                            <div className="text-[13px] font-bold text-slate-500">
+                                                {percentage}%
                                             </div>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
-                        <div className="mt-3 text-[11px] text-slate-500 text-center">
-                            Tổng cộng: {localPost.pollOptions.reduce((acc, opt) => acc + (opt.voterIds?.length || 0), 0)} bình chọn
-                        </div>
                     </div>
-                )}
-
-                {localPost.linkInfo && (
-                    <a href={localPost.linkInfo.url} target="_blank" rel="noreferrer" className="block mt-2 mb-2 bg-[var(--color-surface-lighter)] rounded-lg overflow-hidden hover:bg-[var(--color-bg)] transition-colors border border-[var(--color-border)] group">
-                        {localPost.linkInfo.imageUrl && (
-                            <img src={localPost.linkInfo.imageUrl} alt="" className="w-full h-48 object-cover" />
-                        )}
-                        <div className="p-3">
-                            <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 mb-1 line-clamp-2">{localPost.linkInfo.title}</div>
-                            {localPost.linkInfo.description && <div className="text-xs text-slate-500 line-clamp-2 mb-1">{localPost.linkInfo.description}</div>}
-                            <div className="text-xs text-slate-400 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[10px]">link</span>
-                                {new URL(localPost.linkInfo.url).hostname}
-                            </div>
-                        </div>
-                    </a>
                 )}
             </div>
 
+            {/* ── MEDIA: Full width below text ── */}
             {localPost.mediaFiles && localPost.mediaFiles.length > 0 && (
-                <div className="mt-3">
+                <div className="border-t border-slate-50">
                     {localPost.mediaFiles.map((media, idx) => {
                         const fileUrl = getAvatarUrl(media.url);
                         if (media.type === 'video' || (localPost.type === 'Video' && idx === 0)) {
                             return (
-                                <video key={idx} src={fileUrl} controls className="w-full rounded-lg max-h-[400px] bg-black" />
+                                <div key={idx} className="w-full bg-black relative aspect-video">
+                                    <video src={fileUrl} controls className="w-full h-full object-contain" />
+                                </div>
                             );
                         } else if (media.type === 'image' || (localPost.type === 'Image' && idx === 0) || !media.type) {
                             return (
-                                <div key={idx} className="w-full bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center" style={{ maxHeight: '500px' }}>
+                                <div key={idx} className="w-full bg-slate-50 overflow-hidden flex items-center justify-center">
                                     <img
                                         src={fileUrl}
                                         alt="post media"
-                                        className="w-full h-auto object-contain max-h-[500px]"
+                                        className="w-full h-auto object-cover max-h-[600px] transition-transform duration-700 group-hover/card:scale-[1.02]"
                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                     />
                                 </div>
                             );
                         } else {
-                            // File
                             return (
-                                <a key={idx} href={fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-[var(--color-surface-lighter)] rounded-lg hover:bg-[var(--color-bg)] transition-colors border border-[var(--color-border)]">
-                                    <div className="bg-blue-500/20 p-2 rounded-lg">
-                                        <span className="material-symbols-outlined text-blue-500">description</span>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <div className="text-sm font-medium text-slate-800 truncate">{media.fileName || 'Attached File'}</div>
-                                        <div className="text-xs text-slate-500">{media.fileSize ? `${(media.fileSize / 1024).toFixed(1)} KB` : 'Download'}</div>
-                                    </div>
-                                    <span className="material-symbols-outlined text-slate-400">download</span>
-                                </a>
+                                <div key={idx} className="px-4 py-3">
+                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors border border-slate-200 group/file">
+                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100 group-hover/file:border-primary/30 transition-colors">
+                                            <span className="material-symbols-outlined text-blue-500 text-[28px]">description</span>
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <div className="text-sm font-bold text-slate-800 truncate">{media.fileName || 'Tài liệu đính kèm'}</div>
+                                            <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{media.fileSize ? `${(media.fileSize / 1024).toFixed(1)} KB` : 'Tải về'}</div>
+                                        </div>
+                                        <span className="material-symbols-outlined text-slate-400 group-hover/file:text-primary transition-colors">download</span>
+                                    </a>
+                                </div>
                             );
                         }
                     })}
                 </div>
             )}
 
-            <div className="post-stats">
-                <div className="flex items-center gap-1">
-                    {(() => {
-                        const types = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
-                        const activeKeyStats = types
-                            .map(t => ({ type: t, count: localPost.reactions?.[t]?.length || 0 }))
-                            .filter(x => x.count > 0)
-                            .sort((a, b) => b.count - a.count);
-                        const totalCount = Object.values(localPost.reactions || {}).flat().length;
-
-                        if (activeKeyStats.length > 0) {
-                            return (
-                                <button className="flex items-center gap-1 hover:underline" onClick={fetchReactionUsers}>
-                                    <div className="flex -space-x-1">
-                                        {activeKeyStats.slice(0, 3).map(stat => (
-                                            <span key={stat.type} className="w-5 h-5 flex items-center justify-center bg-white rounded-full border border-slate-100 z-10">
-                                                {ReactionSVGs[stat.type]}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <span className="text-slate-500 text-sm ml-1 hover:text-slate-800">{totalCount}</span>
-                                </button>
-                            );
-                        }
-                        if (localPost.likedBy && localPost.likedBy.length > 0) {
-                            return (
-                                <button className="flex items-center gap-1 hover:underline" onClick={fetchReactionUsers}>
-                                    <span className="w-5 h-5">{ReactionSVGs.like}</span>
-                                    <span className="text-slate-500 text-sm">{localPost.likedBy.length}</span>
-                                </button>
-                            );
-                        }
-                        return null;
-                    })()}
+            {/* Link Preview Rendering */}
+            {localPost.linkInfo && (
+                <div className="px-4 pb-4">
+                    <a href={localPost.linkInfo.url} target="_blank" rel="noreferrer" className="block bg-slate-50/50 rounded-2xl overflow-hidden hover:bg-slate-100/80 transition-all border border-slate-100 group/link shadow-sm">
+                        {localPost.linkInfo.imageUrl && (
+                            <img src={localPost.linkInfo.imageUrl} alt="" className="w-full h-48 object-cover border-b border-slate-100 group-hover/link:opacity-90 transition-opacity" />
+                        )}
+                        <div className="p-4">
+                            <div className="text-[14px] font-bold text-slate-800 group-hover:text-primary mb-1.5 line-clamp-2 transition-colors">{localPost.linkInfo.title}</div>
+                            {localPost.linkInfo.description && <div className="text-[12px] text-slate-500 line-clamp-2 mb-2 leading-relaxed">{localPost.linkInfo.description}</div>}
+                            <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[14px]">link</span>
+                                {new URL(localPost.linkInfo.url).hostname}
+                            </div>
+                        </div>
+                    </a>
                 </div>
-                <span onClick={toggleComments} className="hover:underline cursor-pointer text-sm text-slate-500">{localPost.commentCount || 0} bình luận</span>
+            )}
+
+            {/* ── STATS: Minimalist row ── */}
+            <div className="px-4 py-3 flex justify-between items-center text-[13px] text-slate-500 border-t border-slate-50">
+                <div className="flex items-center gap-4">
+                    {/* Reactions & Likes */}
+                    <button className="flex items-center gap-1.5 group/stat hover:text-slate-800 transition-colors" onClick={fetchReactionUsers}>
+                        <div className="flex -space-x-1.5 items-center">
+                            {(() => {
+                                const types = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
+                                const activeStats = types
+                                    .map(t => ({ type: t, count: localPost.reactions?.[t]?.length || 0 }))
+                                    .filter(x => x.count > 0)
+                                    .sort((a, b) => b.count - a.count);
+                                
+                                if (activeStats.length > 0) {
+                                    return activeStats.slice(0, 3).map(stat => (
+                                        <div key={stat.type} className="w-5 h-5 flex items-center justify-center bg-white rounded-full ring-2 ring-white z-10 shadow-sm border border-slate-50">
+                                            {ReactionSVGs[stat.type]}
+                                        </div>
+                                    ));
+                                } else if (localPost.likedBy && localPost.likedBy.length > 0) {
+                                    return (
+                                        <div className="w-5 h-5 flex items-center justify-center bg-white rounded-full ring-2 ring-white z-10 shadow-sm border border-slate-50">
+                                            {ReactionSVGs.like}
+                                        </div>
+                                    );
+                                }
+                                return <span className="material-symbols-outlined text-[18px] text-slate-300">favorite</span>;
+                            })()}
+                        </div>
+                        <span className="font-bold ml-0.5">
+                            {Object.values(localPost.reactions || {}).flat().length || localPost.likedBy?.length || 0}
+                        </span>
+                    </button>
+
+                    {/* Comments Count */}
+                    <button onClick={toggleComments} className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">mode_comment</span>
+                        <span className="font-bold">{localPost.commentCount || 0}</span>
+                    </button>
+                    
+                    {/* Sharing Stats (Placeholder) */}
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                        <span className="material-symbols-outlined text-[18px]">share</span>
+                    </div>
+                </div>
+
+                {/* Bookmark Toggle (Far right) */}
+                <button onClick={handleSave} className={`flex items-center transition-all duration-300 ${isSaved ? 'text-amber-500 scale-110' : 'text-slate-300 hover:text-slate-500'}`}>
+                    <span className={`material-symbols-outlined text-[20px] ${isSaved ? 'fill-current' : ''}`}>bookmark</span>
+                </button>
             </div>
 
-            <div className="post-actions-bar mt-4 pt-2 border-t border-slate-50 relative">
+            {/* ── ACTIONS: Clean Pill-style buttons ── */}
+            <div className="px-4 pb-4 grid grid-cols-3 gap-2">
                 <div className="group relative">
                     <button
                         onClick={handleLike}
-                        className={`post-action-btn ${CurrentReactionColor} ${isLikeAnimating ? 'scale-110' : ''} transition-transform`}
+                        className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-[14px] font-bold transition-all ${
+                            myReaction 
+                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]' 
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                        }`}
                     >
                         {myReaction
                             ? <span className="w-5 h-5 flex items-center">{ReactionSVGs[myReaction]}</span>
-                            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="20" height="20"><path d="M14.5 2.25c-.69 0-1.375.275-1.875.825L7.75 8.25H4.5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14.25c.9 0 1.675-.6 1.925-1.475l2-7.5c.325-1.2-.575-2.375-1.925-2.375H15.5V4.25c0-1.1-.9-2-2-2h-1z" /></svg>
+                            : <span className="material-symbols-outlined text-[20px] font-light">thumb_up</span>
                         }
-                        <span className="ml-1">{myReaction ? (reactionLabelsVI[myReaction] || 'Thích') : 'Thích'}</span>
+                        <span>{myReaction ? reactionLabelsVI[myReaction] : 'Thích'}</span>
                     </button>
-                    <div className="absolute bottom-full left-0 pb-2 hidden group-hover:flex z-20">
-                        <div className="flex bg-[var(--color-surface)] rounded-full px-2 py-1.5 shadow-xl border border-[var(--color-border)] gap-2">
+                    
+                    {/* Floating Reaction Picker */}
+                    <div className="absolute bottom-full left-0 pb-2 hidden group-hover:flex animate-in fade-in slide-in-from-bottom-2 duration-300 z-30">
+                        <div className="flex bg-white rounded-full px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-slate-100 gap-1.5 items-center">
                             {(['like', 'love', 'haha', 'wow', 'sad', 'angry'] as const).map(type => (
                                 <button
                                     key={type}
@@ -712,30 +725,28 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                                         e.stopPropagation();
                                         const res = await feedService.reactToPost(localPost.id, type);
                                         if (res.success) {
-                                            let updatedLikedBy = (localPost.likedBy || []).filter(id => id !== currentUser?.id);
+                                            const updatedLikedBy = (localPost.likedBy || []).filter(id => id !== currentUser?.id);
                                             setLocalPost({ ...localPost, reactions: res.reactions, likedBy: updatedLikedBy });
                                             onPostUpdated({ ...localPost, reactions: res.reactions, likedBy: updatedLikedBy });
                                         }
                                     }}
-                                    className="hover:scale-125 transition-all duration-150 w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-50"
+                                    className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-50 hover:scale-125 transition-all duration-200"
                                 >
-                                    {ReactionSVGs[type]}
+                                    <div className="w-7 h-7">{ReactionSVGs[type]}</div>
                                 </button>
                             ))}
                         </div>
                     </div>
                 </div>
-                <button onClick={toggleComments} className="post-action-btn">
-                    <span className="material-symbols-outlined">mode_comment</span>
-                    Comment
+
+                <button onClick={toggleComments} className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800 text-[14px] font-bold transition-all">
+                    <span className="material-symbols-outlined text-[20px] font-light">chat_bubble</span>
+                    <span>Phản hồi</span>
                 </button>
-                <button onClick={handleSave} className={`post-action-btn ${isSaved ? 'text-[#eab308]' : ''}`}>
-                    <span className={`material-symbols-outlined ${isSaved ? 'fill-current' : ''}`}>bookmark</span>
-                    {isSaved ? 'Saved' : 'Save'}
-                </button>
-                <button className="post-action-btn">
-                    <span className="material-symbols-outlined">share</span>
-                    Share
+
+                <button className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800 text-[14px] font-bold transition-all">
+                    <span className="material-symbols-outlined text-[20px] font-light">share</span>
+                    <span>Chia sẻ</span>
                 </button>
             </div>
 
@@ -751,58 +762,59 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                     const replies = getReplies(comment.id);
 
                     return (
-                        <div key={comment.id} className={`flex gap-2 ${isReply ? '' : ''}`}>
-                            <div className={`rounded-full bg-[var(--color-surface-lighter)] overflow-hidden flex-shrink-0 ${isReply ? 'w-7 h-7' : 'w-8 h-8'}`}>
+                        <div key={comment.id} className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 shadow-sm">
                                 <img src={getAvatarUrl(comment.authorAvatarUrl || '')} alt="" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 {/* Comment bubble */}
-                                <div className="relative inline-block max-w-full">
-                                    <div className="bg-[var(--color-surface)] rounded-2xl px-3 py-2 border border-[var(--color-border)] shadow-sm">
-                                        <Link to={`/profile/${comment.authorId || ''}`} className="font-semibold text-xs text-[var(--color-text-main)] hover:underline block mb-0.5">{comment.authorName}</Link>
+                                <div className="relative inline-block max-w-[95%]">
+                                    <div className="bg-white rounded-2xl px-4 py-2.5 border border-slate-100 shadow-sm group/bubble">
+                                        <Link to={`/profile/${comment.authorId || ''}`} className="font-bold text-[13px] text-slate-900 hover:text-primary block mb-0.5 transition-colors">{comment.authorName}</Link>
                                         {comment.content.includes('![img](') ? (
                                             <>
-                                                <p className="text-sm text-slate-700 whitespace-pre-line">{comment.content.replace(/\n?!\[img\]\([^)]+\)/g, '').trim()}</p>
+                                                <p className="text-[14px] text-slate-700 leading-relaxed whitespace-pre-line">{comment.content.replace(/\n?!\[img\]\([^)]+\)/g, '').trim()}</p>
                                                 {(() => {
                                                     const match = comment.content.match(/!\[img\]\(([^)]+)\)/);
-                                                    return match ? <img src={`${API_BASE_URL}${match[1]}`} alt="" className="mt-1 rounded-xl max-h-40 object-cover" /> : null;
+                                                    return match ? (
+                                                        <div className="mt-2 rounded-xl overflow-hidden border border-slate-100 shadow-sm max-w-[240px]">
+                                                            <img src={`${API_BASE_URL}${match[1]}`} alt="" className="w-full h-auto object-cover max-h-48" />
+                                                        </div>
+                                                    ) : null;
                                                 })()}
                                             </>
                                         ) : (
-                                            <p className="text-sm text-slate-700 whitespace-pre-line">{comment.content}</p>
+                                            <p className="text-[14px] text-slate-700 leading-relaxed whitespace-pre-line">{comment.content}</p>
                                         )}
                                     </div>
                                     {/* Reaction count badge on bubble */}
                                     {totalReactions > 0 && (
-                                        <div className="absolute -bottom-2.5 right-2 flex items-center gap-0.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full px-1.5 py-0.5 shadow-sm">
-                                            {topReactionTypes.map(t => <span key={t} className="w-3.5 h-3.5">{ReactionSVGs[t]}</span>)}
-                                            <span className="text-[10px] text-[var(--color-text-muted)] ml-0.5">{totalReactions}</span>
+                                        <div className="absolute -bottom-2.5 right-0 flex items-center gap-1 bg-white border border-slate-100 rounded-full px-1.5 py-0.5 shadow-md scale-90 origin-right transition-transform hover:scale-100">
+                                            <div className="flex -space-x-1">
+                                                {topReactionTypes.map(t => <span key={t} className="w-4 h-4 ring-1 ring-white rounded-full bg-white">{ReactionSVGs[t]}</span>)}
+                                            </div>
+                                            <span className="text-[11px] font-bold text-slate-500 ml-0.5">{totalReactions}</span>
                                         </div>
                                     )}
                                 </div>
                                 {/* Actions */}
-                                <div className="flex items-center gap-3 mt-2 ml-2">
-                                    <span className="text-[11px] text-slate-400">{formatTimeAgo(comment.createdAt)}</span>
-                                    {/* Like with mini popup */}
+                                <div className="flex items-center gap-4 mt-1.5 ml-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <span className="text-[11px] text-slate-400 font-medium">{formatTimeAgo(comment.createdAt)}</span>
                                     <div className="group relative">
                                         {(() => {
-                                            const rColors: Record<string, string> = { like: 'text-[#137fec]', love: 'text-[#f63b4f]', haha: 'text-[#f7b928]', wow: 'text-[#f7b928]', sad: 'text-[#f7b928]', angry: 'text-[#e66c24]' };
+                                            const rColors: Record<string, string> = { like: 'text-primary', love: 'text-[#f63b4f]', haha: 'text-[#f7b928]', wow: 'text-[#f7b928]', sad: 'text-[#f7b928]', angry: 'text-[#e66c24]' };
                                             return (
                                                 <button
-                                                    className={`flex items-center gap-1 text-[11px] font-semibold transition-colors ${myRType ? (rColors[myRType] || 'text-blue-600') : 'text-slate-500 hover:text-blue-600'}`}
+                                                    className={`flex items-center gap-1 text-[11px] font-bold transition-all ${myRType ? (rColors[myRType] || 'text-primary') : 'text-slate-500 hover:text-primary'}`}
                                                     onClick={() => handleCommentReact(comment.id, myRType ? '' : 'like')}
                                                 >
-                                                    {myRType
-                                                        ? <span className="w-4 h-4 flex items-center">{ReactionSVGs[myRType]}</span>
-                                                        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14.5 2.25c-.69 0-1.375.275-1.875.825L7.75 8.25H4.5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14.25c.9 0 1.675-.6 1.925-1.475l2-7.5c.325-1.2-.575-2.375-1.925-2.375H15.5V4.25c0-1.1-.9-2-2-2h-1z" /></svg>
-                                                    }
                                                     {myRType ? (reactionLabelsVI[myRType] || 'Thích') : 'Thích'}
                                                 </button>
                                             );
                                         })()}
                                         {/* Mini reaction popup */}
-                                        <div className="absolute bottom-full left-0 pb-1 hidden group-hover:flex z-20">
-                                            <div className="flex bg-white rounded-full px-1.5 py-1 shadow-xl border border-slate-100 gap-1">
+                                        <div className="absolute bottom-full left-0 pb-2 hidden group-hover:flex z-30 animate-in fade-in zoom-in duration-150">
+                                            <div className="flex bg-white rounded-full px-1.5 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-slate-50 gap-1.5 ring-1 ring-black/5">
                                                 {(['like', 'love', 'haha', 'wow', 'sad', 'angry'] as const).map(type => (
                                                     <button key={type} title={reactionLabelsVI[type]}
                                                         onClick={() => handleCommentReact(comment.id, type)}
@@ -814,17 +826,16 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                                         </div>
                                     </div>
                                     <button
-                                        className="text-[11px] text-slate-500 hover:text-blue-600 font-semibold transition-colors"
+                                        className="text-[11px] text-slate-500 hover:text-primary font-bold transition-colors"
                                         onClick={() => handleReply(comment)}
                                     >
                                         Phản hồi
                                     </button>
-                                    <span className="text-[11px] text-slate-400">{formatDateTime(comment.createdAt).split('·')[0].trim()}</span>
                                 </div>
 
                                 {/* Nested replies */}
                                 {replies.length > 0 && (
-                                    <div className="mt-3 flex flex-col gap-3 pl-2 border-l-2 border-slate-100">
+                                    <div className="mt-4 flex flex-col gap-4 pl-2 border-l-2 border-slate-100/80">
                                         {replies.map(r => renderComment(r, true))}
                                     </div>
                                 )}
@@ -834,98 +845,138 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                 };
 
                 return (
-                    <div className="post-comments-section p-4 bg-[var(--color-surface-lighter)] border-t border-[var(--color-border)]">
+                    <div className="px-4 py-5 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-6">
                         {/* Comment Input */}
-                        <div className="flex flex-col gap-2 mb-4">
-                            {/* Reply indicator */}
+                        <div className="flex flex-col gap-3">
                             {replyToCommentId && (
-                                <div className="flex items-center gap-2 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-lg">
-                                    <span className="material-symbols-outlined text-sm">reply</span>
+                                <div className="flex items-center gap-2 bg-blue-50 text-blue-600 text-[12px] px-3 py-2 rounded-xl border border-blue-100 shadow-sm animate-in slide-in-from-left-2 duration-300">
+                                    <span className="material-symbols-outlined text-[18px]">reply</span>
                                     <span>Đang phản hồi <strong>{replyToAuthorName}</strong></span>
-                                    <button onClick={() => { setReplyToCommentId(null); setReplyToAuthorName(''); setNewComment(''); }} className="ml-auto text-blue-400 hover:text-blue-600">×</button>
+                                    <button onClick={() => { setReplyToCommentId(null); setReplyToAuthorName(''); setNewComment(''); }} className="ml-auto w-5 h-5 flex items-center justify-center rounded-full hover:bg-blue-100 transition-colors">×</button>
                                 </div>
                             )}
-                            {/* Image preview */}
+                            
                             {commentPreviewUrl && (
-                                <div className="flex gap-2 p-2 bg-white rounded-xl border border-dashed border-slate-200">
-                                    <div className="relative w-16 h-16 rounded-lg overflow-hidden group flex-shrink-0">
+                                <div className="p-2.5 bg-white rounded-2xl border border-dashed border-slate-200 shadow-sm animate-in zoom-in duration-300 w-fit">
+                                    <div className="relative w-20 h-20 rounded-xl overflow-hidden group">
                                         <img src={commentPreviewUrl} alt="preview" className="w-full h-full object-cover" />
                                         <button onClick={() => { setCommentFile(null); setCommentPreviewUrl(null); }}
-                                            className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm shadow-md hover:bg-black transition-colors">
                                             ×
                                         </button>
                                     </div>
                                 </div>
                             )}
-                            <div className="flex gap-2">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
+
+                            <div className="flex gap-3 items-start">
+                                <div className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 shadow-sm mt-0.5">
                                     <img src={getAvatarUrl(currentUser)} alt="" className="w-full h-full object-cover" />
                                 </div>
-                                <div className="flex-1 flex items-center bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full px-3 gap-2 focus-within:border-[var(--color-primary)] transition-colors">
-                                    <input
-                                        ref={commentInputRef}
+                                <div className="flex-1 relative flex items-center group">
+                                    <textarea
+                                        ref={commentInputRef as any}
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
-                                        placeholder={replyToCommentId ? `Phản hồi ${replyToAuthorName}...` : 'Viết bình luận...'}
-                                        className="flex-1 bg-transparent py-2 text-sm text-[var(--color-text-main)] focus:outline-none placeholder:text-[var(--color-text-muted)]"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleAddComment();
+                                            }
+                                        }}
+                                        placeholder={replyToCommentId ? `Phản hồi cho ${replyToAuthorName}...` : 'Bạn đang nghĩ gì về bài viết này?'}
+                                        className="w-full bg-white border border-slate-200 rounded-2xl pl-4 pr-12 py-2.5 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all resize-none min-h-[44px] max-h-32"
+                                        rows={1}
+                                        onInput={(e) => {
+                                            const target = e.target as HTMLTextAreaElement;
+                                            target.style.height = 'auto';
+                                            target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
+                                        }}
                                     />
-                                    <input type="file" ref={commentFileRef} onChange={handleCommentFileSelect} accept="image/*" style={{ display: 'none' }} />
-                                    <button onClick={() => commentFileRef.current?.click()} className="text-slate-400 hover:text-green-500 transition-colors p-1">
-                                        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
-                                    </button>
+                                    <div className="absolute right-2 flex items-center gap-1">
+                                        <input type="file" ref={commentFileRef} onChange={handleCommentFileSelect} accept="image/*" className="hidden" />
+                                        <button onClick={() => commentFileRef.current?.click()} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-primary rounded-full transition-all">
+                                            <span className="material-symbols-outlined text-[20px]">image</span>
+                                        </button>
+                                        <button 
+                                            onClick={handleAddComment} 
+                                            disabled={!newComment.trim() && !commentFile} 
+                                            className="w-8 h-8 flex items-center justify-center text-primary disabled:text-slate-200 rounded-full hover:bg-primary/10 transition-all disabled:hover:bg-transparent"
+                                        >
+                                            <span className="material-symbols-outlined text-[22px] fill-current">send</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <button onClick={handleAddComment} disabled={!newComment.trim() && !commentFile} className="text-blue-500 disabled:text-gray-300 transition-colors">
-                                    <span className="material-symbols-outlined">send</span>
-                                </button>
                             </div>
                         </div>
 
-                        {/* Threaded Comments */}
-                        <div className="flex flex-col gap-4">
-                            {rootComments.map(c => renderComment(c, false))}
+                        {/* Threaded Comments List */}
+                        <div className="flex flex-col gap-6">
+                            {rootComments.length > 0 ? (
+                                rootComments.map(c => renderComment(c, false))
+                            ) : (
+                                <div className="py-2 text-center">
+                                    <p className="text-[13px] text-slate-400 font-medium italic">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
             })()}
 
-
-            {/* Reaction Users Modal */}
+            {/* Reaction Users Modal — Premium Overhaul */}
             {showReactionsModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={() => setShowReactionsModal(false)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                            <h3 className="font-bold text-slate-900">Cảm xúc</h3>
-                            <button onClick={() => setShowReactionsModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-lg">×</button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setShowReactionsModal(false)} />
+                    <div className="relative bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-5 duration-400 flex flex-col max-h-[85vh]">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
+                            <h3 className="font-bold text-slate-900 text-[17px]">Cảm xúc về bài viết</h3>
+                            <button onClick={() => setShowReactionsModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-all">
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
                         </div>
-                        {/* Reaction filter tabs */}
-                        <div className="flex gap-1 px-4 pt-3 pb-2 overflow-x-auto">
+                        
+                        {/* Reaction Filter Tabs */}
+                        <div className="flex gap-2 px-6 py-3 overflow-x-auto no-scrollbar border-b border-slate-50 bg-slate-50/30">
                             {['all', 'like', 'love', 'haha', 'wow', 'sad', 'angry'].map(f => {
                                 const count = f === 'all' ? reactionUsers.length : reactionUsers.filter(u => u.reactionType === f).length;
                                 if (count === 0 && f !== 'all') return null;
                                 return (
-                                    <button key={f} onClick={() => setReactionFilter(f)}
-                                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${reactionFilter === f ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'text-slate-500 hover:bg-slate-50'
-                                            }`}>
-                                        {f !== 'all' && <span className="w-4 h-4">{ReactionSVGs[f]}</span>}
-                                        {f === 'all' ? `Tất cả ${count}` : count}
+                                    <button 
+                                        key={f} 
+                                        onClick={() => setReactionFilter(f)}
+                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] font-bold transition-all whitespace-nowrap border shadow-sm ${
+                                            reactionFilter === f 
+                                            ? 'bg-white border-primary/20 text-primary ring-2 ring-primary/5' 
+                                            : 'bg-white border-transparent text-slate-500 hover:border-slate-200'
+                                        }`}
+                                    >
+                                        {f !== 'all' && <div className="w-4 h-4">{ReactionSVGs[f]}</div>}
+                                        {f === 'all' ? 'Tất cả' : ''} {count}
                                     </button>
                                 );
                             })}
                         </div>
-                        <div className="max-h-80 overflow-y-auto px-4 pb-4">
+
+                        <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
                             {reactionUsers.filter(u => reactionFilter === 'all' || u.reactionType === reactionFilter).map((u, i) => (
-                                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+                                <div key={i} className="flex items-center gap-4 py-3.5 border-b border-slate-50 last:border-0 group/u">
                                     <div className="relative">
-                                        <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover" />
-                                        <span className="absolute -bottom-1 -right-1 w-5 h-5">{ReactionSVGs[u.reactionType]}</span>
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm ring-2 ring-slate-100 group-hover/u:ring-primary/20 transition-all">
+                                            <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full shadow-md border border-slate-50 flex items-center justify-center scale-90">
+                                            <div className="w-4 h-4">{ReactionSVGs[u.reactionType]}</div>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="font-semibold text-slate-900 text-sm">{u.name}</div>
-                                        {u.department && <div className="text-xs text-slate-500">{u.department}</div>}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-slate-900 text-[15px] truncate">{u.name}</div>
+                                        {u.department && <div className="text-[12px] text-slate-400 font-medium truncate">{u.department}</div>}
                                     </div>
-                                    <Link to={`/profile/${u.id}`} onClick={() => setShowReactionsModal(false)}
-                                        className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium">
+                                    <Link 
+                                        to={`/profile/${u.id}`} 
+                                        onClick={() => setShowReactionsModal(false)}
+                                        className="px-4 py-1.5 text-[12px] font-bold text-primary bg-primary/5 rounded-full hover:bg-primary hover:text-white transition-all shadow-sm"
+                                    >
                                         Hồ sơ
                                     </Link>
                                 </div>
@@ -935,44 +986,48 @@ export default function PostCard({ post, currentUser, onPostUpdated, onPostDelet
                 </div>
             )}
 
-            {/* Report Modal */}
+            {/* Report Modal — Premium UI */}
             {showReportModal && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]" onClick={() => setShowReportModal(false)}>
-                    <div className="bg-[var(--color-dark-surface)] border-2 border-red-500 rounded-xl p-6 max-w-md mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="material-symbols-outlined text-red-500 text-3xl">flag</span>
-                            <h3 className="text-xl font-bold text-white">Report Post</h3>
-                        </div>
-                        <p className="text-[var(--color-text-muted)] mb-4 text-sm">Please describe why you're reporting this content:</p>
-                        <textarea
-                            value={reportReason}
-                            onChange={(e) => setReportReason(e.target.value)}
-                            placeholder="E.g., Spam, inappropriate content, harassment..."
-                            className="w-full bg-[var(--color-dark-bg)] text-white border border-[var(--color-border)] rounded-lg p-3 mb-4 focus:outline-none focus:border-[var(--color-primary)] resize-none"
-                            rows={4}
-                        />
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowReportModal(false);
-                                    setReportReason('');
-                                }}
-                                className="flex-1 px-4 py-2 bg-[var(--color-dark-bg)] text-white rounded-lg hover:bg-[var(--color-dark-surface-lighter)] transition-colors border border-[var(--color-border)]"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={submitReport}
-                                disabled={!reportReason.trim()}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Submit Report
-                            </button>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowReportModal(false)} />
+                    <div className="relative bg-white rounded-[28px] shadow-2xl w-full max-w-md overflow-hidden animate-in slide-in-from-bottom-8 duration-500" onClick={e => e.stopPropagation()}>
+                        <div className="p-8">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-inner">
+                                    <span className="material-symbols-outlined text-[28px]">report_problem</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900">Báo cáo bài viết</h3>
+                                    <p className="text-[13px] text-slate-500 font-medium mt-0.5">Giúp chúng tôi hiểu điều gì đang xảy ra.</p>
+                                </div>
+                            </div>
+                            
+                            <textarea
+                                value={reportReason}
+                                onChange={(e) => setReportReason(e.target.value)}
+                                placeholder="Hãy mô tả lý do bạn báo cáo bài viết này (Spam, nội dung không phù hợp, quấy rối...)"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400 focus:ring-4 focus:ring-red-500/5 transition-all resize-none mb-6 min-h-[120px]"
+                            />
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => { setShowReportModal(false); setReportReason(''); }}
+                                    className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    onClick={submitReport}
+                                    disabled={!reportReason.trim()}
+                                    className="flex-1 px-6 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    Gửi báo cáo
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            )
-            }
-        </div >
+            )}
+        </div>
     );
 }

@@ -14,6 +14,7 @@ import EditProfileModal from '../components/EditProfileModal';
 import { useTranslation } from 'react-i18next';
 import './ProfilePage.css';
 
+
 type TabType = 'overview' | 'security' | 'activity' | 'connections';
 
 interface LogEntry {

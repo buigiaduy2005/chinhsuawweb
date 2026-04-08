@@ -187,8 +187,114 @@ body {
   color: var(--color-text-muted) !important;
 }
 
+/* ===== ANT DESIGN CARD & TABLE (Global Dark) ===== */
+.dark .ant-card {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark .ant-card-head {
+  border-bottom-color: var(--color-border) !important;
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-card-head-title {
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-statistic-title {
+  color: var(--color-text-muted) !important;
+}
+
+.dark .ant-statistic-content {
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-table {
+  background-color: transparent !important;
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-table-thead > tr > th {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-main) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.dark .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-table-tbody > tr:hover > td {
+  background-color: var(--color-surface-lighter) !important;
+}
+
+.dark .ant-tabs {
+  color: var(--color-text-main) !important;
+}
+
+.dark .ant-tabs-tab {
+  color: var(--color-text-muted) !important;
+}
+
+.dark .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-primary) !important;
+}
+
 /* ===== MATERIAL SYMBOLS ===== */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   transition: font-variation-settings 0.2s ease;
+}
+
+/* ===== ANT DESIGN DATEPICKER MOBILE OVERRIDES ===== */
+@media (max-width: 767px) {
+  .mobile-date-picker-popup {
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    transform: none !important;
+  }
+
+  .mobile-date-picker-popup .ant-picker-panel-container {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* Force vertical stacking by using block and disabling flex */
+  .mobile-date-picker-popup .ant-picker-panel {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .mobile-date-picker-popup .ant-picker-date-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-bottom: 1px solid var(--color-border) !important;
+  }
+
+  .mobile-date-picker-popup .ant-picker-time-panel {
+    width: 100% !important;
+    height: 180px !important;
+    border-left: none !important;
+    border-top: 1px solid var(--color-border) !important;
+  }
+
+  /* Compact the time columns to reclaim horizontal space */
+  .mobile-date-picker-popup .ant-picker-time-panel-column {
+    min-width: 60px !important;
+    width: auto !important;
+    flex: 1 !important;
+  }
+
+  .mobile-date-picker-popup .ant-picker-content {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  /* Final fix for "Huyết" - reset dropdown container width */
+  .ant-picker-dropdown {
+    width: auto !important;
+  }
 }

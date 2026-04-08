@@ -117,6 +117,11 @@ namespace InsiderThreat.ClientAgent
                 {
                     _logger.LogInformation("✅ Device is ALLOWED.");
                     await SendLog("USB_INSERT", "Info", $"Allowed USB device: {device.Description} ({device.DeviceId})", "Allowed", device.DeviceId, device.Description);
+                    
+                    // Hiển thị thông báo cho phép
+                    NativeMethods.MessageBox(IntPtr.Zero, 
+                        $"THIẾT BỊ USB ĐÃ ĐƯỢC CẤP QUYỀN\n\nThiết bị: {device.Description}\nTrạng thái: Đã cho phép truy cập", 
+                        "An ninh Hệ thống Insider Threat", 0x00000040); // 0x40 = MB_ICONINFORMATION
                 }
                 else
                 {
@@ -130,8 +135,10 @@ namespace InsiderThreat.ClientAgent
 
                     await SendLog("USB_INSERT", "Critical", $"BLOCKED USB Device: {device.Description} ({device.DeviceId})", "Blocked", device.DeviceId, device.Description);
 
-                    // Hiển thị cảnh báo
-                    NativeMethods.MessageBox(IntPtr.Zero, "USB DEVICE BLOCKED!\nThis device is not authorized.", "Insider Threat Security", 0x00000010);
+                    // Hiển thị cảnh báo chặn
+                    NativeMethods.MessageBox(IntPtr.Zero, 
+                        $"THIẾT BỊ USB ĐÃ BỊ CHẶN!\n\nThiết bị: {device.Description}\nThiết bị này không được phép sử dụng theo chính sách bảo mật của công ty.", 
+                        "An ninh Hệ thống Insider Threat", 0x00000010); // 0x10 = MB_ICONERROR
                 }
             }
         }
@@ -157,6 +164,21 @@ namespace InsiderThreat.ClientAgent
             return false;
         }
 
+        private static string GetLocalIPAddress()
+        {
+            try
+            {
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                var ip = host.AddressList
+                    .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                return ip?.ToString() ?? "127.0.0.1";
+            }
+            catch
+            {
+                return "127.0.0.1";
+            }
+        }
+
         private async Task SendLog(string type, string severity, string message, string action, string? deviceId = null, string? deviceName = null)
         {
             try
@@ -168,7 +190,7 @@ namespace InsiderThreat.ClientAgent
                     Message = message,
                     ActionTaken = action,
                     ComputerName = Environment.MachineName,
-                    IPAddress = "127.0.0.1", // Simplified
+                    IPAddress = GetLocalIPAddress(),
                     DeviceId = deviceId,
                     DeviceName = deviceName,
                     Timestamp = DateTime.Now

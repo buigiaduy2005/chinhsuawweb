@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using MongoDB.Driver;
 using InsiderThreat.Server.Models;
+using InsiderThreat.Server.Hubs;
 using System.IO.Compression;
 using System.Text.Json;
 
@@ -14,12 +16,14 @@ namespace InsiderThreat.Server.Controllers
     {
         private readonly IMongoCollection<MonitorLog> _logs;
         private readonly IMongoCollection<SharedDocument> _documents;
+        private readonly IHubContext<SystemHub> _hub;
         private readonly ILogger<MonitorLogsController> _logger;
 
-        public MonitorLogsController(IMongoDatabase database, ILogger<MonitorLogsController> logger)
+        public MonitorLogsController(IMongoDatabase database, IHubContext<SystemHub> hub, ILogger<MonitorLogsController> logger)
         {
             _logs = database.GetCollection<MonitorLog>("MonitorLogs");
             _documents = database.GetCollection<SharedDocument>("SharedDocuments");
+            _hub = hub;
             _logger = logger;
         }
 
@@ -176,6 +180,32 @@ namespace InsiderThreat.Server.Controllers
 
                 await _logs.InsertManyAsync(logs);
                 _logger.LogInformation($"Successfully received batch of {logs.Count} logs from Agent.");
+
+                // Broadcast real-time alerts cho admin với các log nghiêm trọng
+                var alertableLogs = logs.Where(l =>
+                    l.SeverityScore >= 6 ||
+                    l.LogType == "DocumentLeak" ||
+                    l.LogType == "FaceIDSpoofAttempt" ||
+                    l.LogType == "Screenshot"
+                );
+                foreach (var log in alertableLogs)
+                {
+                    await _hub.Clients.All.SendAsync("MonitorAlert", new
+                    {
+                        logType = log.LogType,
+                        severity = log.Severity,
+                        severityScore = log.SeverityScore,
+                        message = log.Message,
+                        computerName = log.ComputerName,
+                        computerUser = log.ComputerUser,
+                        ipAddress = log.IpAddress,
+                        detectedKeyword = log.DetectedKeyword,
+                        messageContext = log.MessageContext,
+                        applicationName = log.ApplicationName,
+                        timestamp = log.Timestamp
+                    });
+                }
+
                 return Ok(new { count = logs.Count });
             }
             catch (Exception ex)

@@ -12,6 +12,7 @@ interface SynchroHeaderProps {
     onInviteClick?: () => void;
     status?: string;
     privacy?: string;
+    isMobile?: boolean;
 }
 
 export default function SynchroHeader({ 
@@ -19,66 +20,76 @@ export default function SynchroHeader({
     members = [], 
     onInviteClick, 
     status, 
-    privacy 
+    privacy,
+    isMobile = false
 }: SynchroHeaderProps) {
     return (
         <header className={styles.header}>
             <div className={styles.breadcrumbWrapper}>
-                {breadcrumb.map((item, index) => (
-                    <React.Fragment key={index}>
-                        <div className={`${styles.breadcrumbItem} ${item.active ? styles.active : ''}`}>
-                            {item.label}
-                            {item.active && (status || privacy) && (
-                                <div className={styles.headerBadges}>
-                                    {status && <span className={`${styles.badge} ${styles['badge' + status]}`}>{status}</span>}
-                                    {privacy && <span className={`${styles.badge} ${styles.badgePrivacy}`}>{privacy}</span>}
-                                </div>
+                {isMobile ? (
+                    <div className={`${styles.breadcrumbItem} ${styles.active}`}>
+                        {breadcrumb[breadcrumb.length - 1].label}
+                    </div>
+                ) : (
+                    breadcrumb.map((item, index) => (
+                        <React.Fragment key={index}>
+                            <div className={`${styles.breadcrumbItem} ${item.active ? styles.active : ''}`}>
+                                {item.label}
+                                {item.active && (status || privacy) && (
+                                    <div className={styles.headerBadges}>
+                                        {status && <span className={`${styles.badge} ${styles['badge' + status]}`}>{status}</span>}
+                                        {privacy && <span className={`${styles.badge} ${styles.badgePrivacy}`}>{privacy}</span>}
+                                    </div>
+                                )}
+                            </div>
+                            {index < breadcrumb.length - 1 && (
+                                <RightOutlined className={styles.separator} />
                             )}
-                        </div>
-                        {index < breadcrumb.length - 1 && (
-                            <RightOutlined className={styles.separator} />
-                        )}
-                    </React.Fragment>
-                ))}
+                        </React.Fragment>
+                    ))
+                )}
             </div>
 
             <div className={styles.headerRight}>
-                <div className={styles.searchWrapper}>
-                    <SearchOutlined className={styles.searchIcon} />
-                    <input type="text" placeholder="Search projects..." className={styles.searchInput} />
-                </div>
+                {!isMobile && (
+                    <>
+                        <div className={styles.searchWrapper}>
+                            <SearchOutlined className={styles.searchIcon} />
+                            <input type="text" placeholder="Search projects..." className={styles.searchInput} />
+                        </div>
 
-                <Space size={12} className={styles.actions}>
-                    <Button type="text" icon={<ShareAltOutlined />} className={styles.actionBtn} />
-                    <Badge count={0} dot offset={[-4, 4]}>
-                        <Button type="text" icon={<BellOutlined />} className={styles.actionBtn} />
-                    </Badge>
-                </Space>
+                        <Space size={12} className={styles.actions}>
+                            <Button type="text" icon={<ShareAltOutlined />} className={styles.actionBtn} />
+                            <Badge count={0} dot offset={[-4, 4]}>
+                                <Button type="text" icon={<BellOutlined />} className={styles.actionBtn} />
+                            </Badge>
+                        </Space>
 
-                <div className={styles.divider} />
+                        <div className={styles.divider} />
+                    </>
+                )}
 
-                <Space size={16} className={styles.membersSection}>
-                    {members.length > 0 ? (
-                        <Avatar.Group max={{ count: 3 }} size={32} className={styles.avatarGroup}>
-                            {members.map(member => (
+                <Space size={isMobile ? 8 : 16} className={styles.membersSection}>
+                    <Avatar.Group max={{ count: isMobile ? 2 : 3 }} size={isMobile ? 28 : 32} className={styles.avatarGroup}>
+                        {members.length > 0 ? (
+                            members.map(member => (
                                 <Avatar key={member.id} src={member.avatarUrl || `https://ui-avatars.com/api/?name=${member.username}`}>
                                     {member.fullName?.charAt(0) || member.username?.charAt(0)}
                                 </Avatar>
-                            ))}
-                        </Avatar.Group>
-                    ) : (
-                        <Avatar.Group max={{ count: 3 }} size={32} className={styles.avatarGroup}>
-                            <Avatar src="https://i.pravatar.cc/150?u=1" />
-                            <Avatar src="https://i.pravatar.cc/150?u=2" />
-                            <Avatar src="https://i.pravatar.cc/150?u=3" />
-                        </Avatar.Group>
-                    )}
+                            ))
+                        ) : (
+                            <>
+                                <Avatar src="https://i.pravatar.cc/150?u=1" />
+                                <Avatar src="https://i.pravatar.cc/150?u=2" />
+                            </>
+                        )}
+                    </Avatar.Group>
                     
-                    <Button type="primary" icon={<UserAddOutlined />} className={styles.inviteBtn} onClick={onInviteClick}>
-                        Invite
+                    <Button type="primary" size={isMobile ? "small" : "middle"} icon={<UserAddOutlined />} className={styles.inviteBtn} onClick={onInviteClick}>
+                        {isMobile ? '' : 'Invite'}
                     </Button>
                     
-                    <Button type="text" icon={<MoreOutlined />} className={styles.actionBtn} />
+                    {!isMobile && <Button type="text" icon={<MoreOutlined />} className={styles.actionBtn} />}
                 </Space>
             </div>
         </header>

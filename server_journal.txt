@@ -1,0 +1,50 @@
+﻿Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Connections.BinaryConnection.OpenHelper(OperationContext operationContext)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Connections.BinaryConnection.Open(OperationContext operationContext)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Servers.ServerMonitor.InitializeConnection(OperationContext operationContext)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Servers.ServerMonitor.Heartbeat(CancellationToken cancellationToken)", LastHeartbeatTimestamp: "2026-04-03T18:15:50.9723399Z", LastUpdateTimestamp: "2026-04-03T18:15:50.9723407Z" }] }.
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Clusters.Cluster.SelectServerAsync(OperationContext operationContext, IServerSelector selector)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Clusters.IClusterExtensions.SelectServerAndPinIfNeededAsync(IClusterInternal cluster, OperationContext operationContext, ICoreSessionHandle session, IServerSelector selector, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Bindings.ReadPreferenceBinding.GetReadChannelSourceAsync(OperationContext operationContext, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Operations.RetryableReadContext.AcquireOrReplaceChannelAsync(OperationContext operationContext, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Operations.RetryableReadContext.CreateAsync(OperationContext operationContext, IReadBinding binding, Boolean retryRequested)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.Core.Operations.FindOperation`1.ExecuteAsync(OperationContext operationContext, IReadBinding binding)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.OperationExecutor.ExecuteReadOperationAsync[TResult](OperationContext operationContext, IClientSessionHandle session, IReadOperation`1 operation, ReadPreference readPreference, Boolean allowChannelPinning)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.MongoCollectionImpl`1.ExecuteReadOperationAsync[TResult](IClientSessionHandle session, IReadOperation`1 operation, ReadPreference explicitReadPreference, Nullable`1 timeout, CancellationToken cancellationToken)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.MongoCollectionImpl`1.FindAsync[TProjection](FilterDefinition`1 filter, FindOptions`2 options, CancellationToken cancellationToken)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at MongoDB.Driver.IAsyncCursorSourceExtensions.FirstOrDefaultAsync[TDocument](IAsyncCursorSource`1 source, CancellationToken cancellationToken)
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at Program.<Main>$(String[] args) in C:\secu\src\InsiderThreat.Server\Program.cs:line 128
+Apr 04 01:15:51 150-95-104-244 dotnet[566339]:    at Program.<Main>(String[] args)
+Apr 04 01:15:51 150-95-104-244 systemd[1]: insiderthreat.service: Main process exited, code=dumped, status=6/ABRT
+Apr 04 01:15:51 150-95-104-244 systemd[1]: insiderthreat.service: Failed with result 'core-dump'.
+Apr 04 01:15:51 150-95-104-244 systemd[1]: insiderthreat.service: Consumed 1.343s CPU time.
+Apr 04 01:16:01 150-95-104-244 systemd[1]: insiderthreat.service: Scheduled restart job, restart counter is at 37.
+Apr 04 01:16:01 150-95-104-244 systemd[1]: Stopped InsiderThreat System Backend.
+Apr 04 01:16:01 150-95-104-244 systemd[1]: insiderthreat.service: Consumed 1.343s CPU time.
+Apr 04 01:16:01 150-95-104-244 systemd[1]: Started InsiderThreat System Backend.
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]: Unhandled exception. System.TimeoutException: A timeout occurred after 29999ms selecting a server using CompositeServerSelector{ Selectors = ReadPreferenceServerSelector{ ReadPreference = { Mode : Primary } }, LatencyLimitingServerSelector{ AllowedLatencyRange = 00:00:00.0150000 }, OperationsCountServerSelector }. Client view of cluster state is { ClusterId : "1", Type : "Unknown", State : "Disconnected", Servers : [{ ServerId: "{ ClusterId : 1, EndPoint : "150.95.104.244:27017" }", EndPoint: "150.95.104.244:27017", ReasonChanged: "Heartbeat", State: "Disconnected", ServerVersion: , TopologyVersion: , Type: "Unknown", HeartbeatException: "MongoDB.Driver.MongoConnectionException: An exception occurred while opening a connection to the server.
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:  ---> System.Net.Sockets.SocketException (111): Connection refused 150.95.104.244:27017
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at System.Net.Sockets.Socket.Connect(EndPoint remoteEP)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Connections.TcpStreamFactory.Connect(Socket socket, EndPoint endPoint, CancellationToken cancellationToken)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Connections.TcpStreamFactory.CreateStream(EndPoint endPoint, CancellationToken cancellationToken)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Connections.BinaryConnection.OpenHelper(OperationContext operationContext)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    --- End of inner exception stack trace ---
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Connections.BinaryConnection.OpenHelper(OperationContext operationContext)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Connections.BinaryConnection.Open(OperationContext operationContext)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Servers.ServerMonitor.InitializeConnection(OperationContext operationContext)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Servers.ServerMonitor.Heartbeat(CancellationToken cancellationToken)", LastHeartbeatTimestamp: "2026-04-03T18:16:31.9548153Z", LastUpdateTimestamp: "2026-04-03T18:16:31.9548162Z" }] }.
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Clusters.Cluster.SelectServerAsync(OperationContext operationContext, IServerSelector selector)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Clusters.IClusterExtensions.SelectServerAndPinIfNeededAsync(IClusterInternal cluster, OperationContext operationContext, ICoreSessionHandle session, IServerSelector selector, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Bindings.ReadPreferenceBinding.GetReadChannelSourceAsync(OperationContext operationContext, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Operations.RetryableReadContext.AcquireOrReplaceChannelAsync(OperationContext operationContext, IReadOnlyCollection`1 deprioritizedServers)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Operations.RetryableReadContext.CreateAsync(OperationContext operationContext, IReadBinding binding, Boolean retryRequested)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.Core.Operations.FindOperation`1.ExecuteAsync(OperationContext operationContext, IReadBinding binding)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.OperationExecutor.ExecuteReadOperationAsync[TResult](OperationContext operationContext, IClientSessionHandle session, IReadOperation`1 operation, ReadPreference readPreference, Boolean allowChannelPinning)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.MongoCollectionImpl`1.ExecuteReadOperationAsync[TResult](IClientSessionHandle session, IReadOperation`1 operation, ReadPreference explicitReadPreference, Nullable`1 timeout, CancellationToken cancellationToken)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.MongoCollectionImpl`1.FindAsync[TProjection](FilterDefinition`1 filter, FindOptions`2 options, CancellationToken cancellationToken)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at MongoDB.Driver.IAsyncCursorSourceExtensions.FirstOrDefaultAsync[TDocument](IAsyncCursorSource`1 source, CancellationToken cancellationToken)
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at Program.<Main>$(String[] args) in C:\secu\src\InsiderThreat.Server\Program.cs:line 128
+Apr 04 01:16:32 150-95-104-244 dotnet[566429]:    at Program.<Main>(String[] args)
+Apr 04 01:16:32 150-95-104-244 systemd[1]: insiderthreat.service: Main process exited, code=dumped, status=6/ABRT
+Apr 04 01:16:32 150-95-104-244 systemd[1]: insiderthreat.service: Failed with result 'core-dump'.
+Apr 04 01:16:32 150-95-104-244 systemd[1]: insiderthreat.service: Consumed 1.320s CPU time.

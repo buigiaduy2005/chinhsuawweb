@@ -73,8 +73,8 @@ public class LocalDatabaseService : IDisposable
             cmd.Parameters.AddWithValue("@Severity", log.Severity);
             
             // Mã hóa dữ liệu nhạy cảm
-            cmd.Parameters.AddWithValue("@DetectedKeyword", Encrypt((object?)log.DetectedKeyword?.ToString()));
-            cmd.Parameters.AddWithValue("@MessageContext", Encrypt((object?)log.MessageContext?.ToString()));
+            cmd.Parameters.AddWithValue("@DetectedKeyword", Encrypt(log.DetectedKeyword?.ToString()));
+            cmd.Parameters.AddWithValue("@MessageContext", Encrypt(log.MessageContext?.ToString()));
             
             cmd.Parameters.AddWithValue("@ApplicationName", (object?)log.ApplicationName ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@WindowTitle", (object?)log.WindowTitle ?? DBNull.Value);
@@ -82,7 +82,7 @@ public class LocalDatabaseService : IDisposable
             cmd.Parameters.AddWithValue("@ComputerName", log.ComputerName);
             cmd.Parameters.AddWithValue("@IpAddress", log.IpAddress);
             cmd.Parameters.AddWithValue("@Timestamp", log.Timestamp.ToString("o"));
-            cmd.Parameters.AddWithValue("@RiskAssessment", Encrypt((object?)log.RiskAssessment?.ToString()));
+            cmd.Parameters.AddWithValue("@RiskAssessment", Encrypt(log.RiskAssessment?.ToString()));
 
             var result = cmd.ExecuteScalar();
             var id = Convert.ToInt64(result);

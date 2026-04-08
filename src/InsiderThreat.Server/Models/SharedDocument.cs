@@ -25,6 +25,7 @@ namespace InsiderThreat.Server.Models
         public bool RequireCamera { get; set; } = true;
         public bool RequireWatermark { get; set; } = true;
         public bool EnableAgentMonitoring { get; set; } = true;
+        public bool DisableMobileDownload { get; set; } = false;
 
         // Categorization & Classification
         public string Department { get; set; } = "General"; // Engineering, Product, Security, Business, HR, etc.

@@ -72,7 +72,7 @@ const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => {
 
                 // Dùng axios trực tiếp để theo dõi progress
                 const token = localStorage.getItem('token');
-                const uploadRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5038'}/api/upload`, formData, {
+                const uploadRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'https://tuyen-thda.io.vn'}/api/upload`, formData, {
                     headers: { 
                         'Content-Type': 'multipart/form-data',
                         'Authorization': `Bearer ${token}`

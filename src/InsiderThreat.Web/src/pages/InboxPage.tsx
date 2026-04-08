@@ -14,6 +14,7 @@ import LeftSidebar from '../components/LeftSidebar';
 import BottomNavigation from '../components/BottomNavigation';
 import './InboxPage.css';
 
+
 dayjs.extend(relativeTime);
 const { Title, Text } = Typography;
 
@@ -34,6 +35,7 @@ export default function InboxPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [activeFilter, setActiveFilter] = useState('all');
 
     const fetchNotifications = async () => {
         try {
@@ -66,12 +68,21 @@ export default function InboxPage() {
 
     const markAllAsRead = async () => {
         try {
-            const unread = notifications.filter(n => !n.isRead);
-            await Promise.all(unread.map(n => api.put(`/api/notifications/${n.id}/read`, {})));
+            await api.put('/api/notifications/read-all', {});
             setNotifications(notifications.map(n => ({ ...n, isRead: true })));
             antdMessage.success('Đã đánh dấu tất cả là đã đọc');
         } catch (error) {
             antdMessage.error('Thao tác thất bại');
+        }
+    };
+
+    const deleteReadNotifications = async () => {
+        try {
+            await api.delete('/api/notifications/read');
+            setNotifications(notifications.filter(n => !n.isRead));
+            antdMessage.success('Đã xóa tất cả thông báo đã đọc');
+        } catch (error) {
+            antdMessage.error('Xóa thất bại');
         }
     };
 
@@ -84,13 +95,20 @@ export default function InboxPage() {
         }
     };
 
+    const filteredNotifications = notifications.filter(n => {
+        if (activeFilter === 'all') return true;
+        if (activeFilter === 'unread') return !n.isRead;
+        if (activeFilter === 'tasks') return n.type === 'TaskAssignment' || n.type === 'TaskStatusChange';
+        if (activeFilter === 'discussion') return n.type === 'TaskComment';
+        return true;
+    });
+
     return (
         <div className="inbox-container inbox-page">
             {!isMobile && <LeftSidebar defaultCollapsed={true} />}
             
             <div className="inbox-main-wrapper">
                 <main className="inbox-content animate-in">
-                    {/* ... Existing header and list content ... */}
                     <header className="inbox-header">
                         <div className="header-left">
                             <Title level={2} className="inbox-title">Inbox</Title>
@@ -99,46 +117,83 @@ export default function InboxPage() {
                             </Text>
                         </div>
                         <div className="header-right">
-                            <Button 
-                                type="text" 
-                                icon={<CheckCircleOutlined />} 
-                                onClick={markAllAsRead}
-                                className="action-btn"
-                            >
-                                Đánh dấu tất cả đã đọc
-                            </Button>
+                            <Space>
+                                <Button 
+                                    type="text" 
+                                    icon={<CheckCircleOutlined />} 
+                                    onClick={markAllAsRead}
+                                    className="action-btn"
+                                >
+                                    Đánh dấu đã đọc hết
+                                </Button>
+                                <Button 
+                                    danger
+                                    type="text" 
+                                    icon={<DeleteOutlined />} 
+                                    onClick={deleteReadNotifications}
+                                    className="action-btn delete-btn"
+                                >
+                                    Xóa hết đã đọc
+                                </Button>
+                            </Space>
                         </div>
                     </header>
 
                     <div className="inbox-filter-bar">
                         <Space size="middle">
-                            <Badge count={notifications.filter(n => !n.isRead).length} offset={[10, 0]}>
-                                <Tag className="filter-tag active">Tất cả</Tag>
+                            <Badge count={activeFilter === 'all' ? notifications.filter(n => !n.isRead).length : 0} offset={[10, 0]}>
+                                <Tag 
+                                    className={`filter-tag ${activeFilter === 'all' ? 'active' : ''}`}
+                                    onClick={() => setActiveFilter('all')}
+                                >
+                                    Tất cả
+                                </Tag>
                             </Badge>
-                            <Tag className="filter-tag">Chưa đọc</Tag>
-                            <Tag className="filter-tag">Giao việc</Tag>
-                            <Tag className="filter-tag">Thảo luận</Tag>
+                            <Tag 
+                                className={`filter-tag ${activeFilter === 'unread' ? 'active' : ''}`}
+                                onClick={() => setActiveFilter('unread')}
+                            >
+                                Chưa đọc
+                            </Tag>
+                            <Tag 
+                                className={`filter-tag ${activeFilter === 'tasks' ? 'active' : ''}`}
+                                onClick={() => setActiveFilter('tasks')}
+                            >
+                                Giao việc
+                            </Tag>
+                            <Tag 
+                                className={`filter-tag ${activeFilter === 'discussion' ? 'active' : ''}`}
+                                onClick={() => setActiveFilter('discussion')}
+                            >
+                                Thảo luận
+                            </Tag>
                         </Space>
                     </div>
 
                     <div className="inbox-list-wrapper">
                         {loading ? (
                             <div className="loading-state"><Spin size="large" tip="Đang tải thông báo..." /></div>
-                        ) : notifications.length === 0 ? (
+                        ) : filteredNotifications.length === 0 ? (
                             <Empty 
                                 image={<MailOutlined style={{ fontSize: 64, color: 'var(--color-border)' }} />}
-                                description="Hộp thư của bạn đang trống"
+                                description={
+                                    activeFilter === 'unread' ? "Không có thông báo chưa đọc" :
+                                    activeFilter === 'tasks' ? "Không có nhiệm vụ nào" :
+                                    activeFilter === 'discussion' ? "Không có thảo luận nào" :
+                                    "Hộp thư của bạn đang trống"
+                                }
                                 className="empty-inbox"
                             />
                         ) : (
                             <div className="notification-list">
-                                <AnimatePresence>
-                                    {notifications.map((n, index) => (
+                                <AnimatePresence mode="popLayout">
+                                    {filteredNotifications.map((n, index) => (
                                         <motion.div 
                                             key={n.id || index}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.05 }}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ duration: 0.2 }}
                                             className={`notification-card ${n.isRead ? 'read' : 'unread'}`}
                                             onClick={() => markAsRead(n.id, n.link)}
                                         >

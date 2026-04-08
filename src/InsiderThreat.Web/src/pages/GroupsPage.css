@@ -1,7 +1,9 @@
 /* GroupsPage.css */
 
 .groupsPage {
-    padding: 28px 32px;
+    padding: 0;
+    padding-top: 24px;
+    padding-right: 32px;
     background: var(--color-bg);
     min-height: 100%;
 }
