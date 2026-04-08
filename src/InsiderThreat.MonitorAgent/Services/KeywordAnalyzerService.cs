@@ -134,34 +134,31 @@ public class KeywordAnalyzerService
     }
 
     /// <summary>
-    /// Normalize text by stripping Telex/VNI tone modifiers for matching.
-    /// Telex: s=sắc, f=huyền, r=hỏi, x=ngã, j=nặng
-    /// Also handles: aa=â, aw=ă, ee=ê, oo=ô, ow=ơ, uw=ư, dd=đ
+    /// Normalize text by stripping Vietnamese accents and Telex/VNI tone modifiers.
+    /// Uses FormD decomposition for robust accent removal.
     /// </summary>
     private static string NormalizeForMatching(string input)
     {
         if (string.IsNullOrEmpty(input)) return input;
 
-        var result = input.ToLowerInvariant();
+        var normalizedString = input.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder();
 
-        // Remove Vietnamese diacritics (convert accented chars to base)
-        result = result
-            .Replace("à", "a").Replace("á", "a").Replace("ả", "a").Replace("ã", "a").Replace("ạ", "a")
-            .Replace("ă", "a").Replace("ắ", "a").Replace("ằ", "a").Replace("ẳ", "a").Replace("ẵ", "a").Replace("ặ", "a")
-            .Replace("â", "a").Replace("ấ", "a").Replace("ầ", "a").Replace("ẩ", "a").Replace("ẫ", "a").Replace("ậ", "a")
-            .Replace("è", "e").Replace("é", "e").Replace("ẻ", "e").Replace("ẽ", "e").Replace("ẹ", "e")
-            .Replace("ê", "e").Replace("ế", "e").Replace("ề", "e").Replace("ể", "e").Replace("ễ", "e").Replace("ệ", "e")
-            .Replace("ì", "i").Replace("í", "i").Replace("ỉ", "i").Replace("ĩ", "i").Replace("ị", "i")
-            .Replace("ò", "o").Replace("ó", "o").Replace("ỏ", "o").Replace("õ", "o").Replace("ọ", "o")
-            .Replace("ô", "o").Replace("ố", "o").Replace("ồ", "o").Replace("ổ", "o").Replace("ỗ", "o").Replace("ộ", "o")
-            .Replace("ơ", "o").Replace("ớ", "o").Replace("ờ", "o").Replace("ở", "o").Replace("ỡ", "o").Replace("ợ", "o")
-            .Replace("ù", "u").Replace("ú", "u").Replace("ủ", "u").Replace("ũ", "u").Replace("ụ", "u")
-            .Replace("ư", "u").Replace("ứ", "u").Replace("ừ", "u").Replace("ử", "u").Replace("ữ", "u").Replace("ự", "u")
-            .Replace("ỳ", "y").Replace("ý", "y").Replace("ỷ", "y").Replace("ỹ", "y").Replace("ỵ", "y")
-            .Replace("đ", "d");
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
 
-        // Strip Telex tone marks at word boundaries (s, f, r, x, j after vowels or valid ending consonants c,m,n,t,p,g,h)
-        // This handles raw Telex keyboard buffer like "nghir" → "nghi", "vieecj" → "vieec"
+        var result = stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC).ToLowerInvariant();
+
+        // Handle specific Vietnamese character conversions not handled by FormD (like đ)
+        result = result.Replace("đ", "d");
+
+        // Strip Telex tone marks at word boundaries (s, f, r, x, j after vowels or valid ending consonants)
         result = System.Text.RegularExpressions.Regex.Replace(result, @"([aeiouycmntpgh])([sfrxj])(?=\s|$|[^a-z])", "$1");
 
         // Handle doubled chars from Telex: aa→a, ee→e, oo→o, dd→d
@@ -179,7 +176,14 @@ public class KeywordAnalyzerService
     private static string ExtractContext(string text, string keyword, int contextChars)
     {
         var idx = text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0) return text.Length > 200 ? text[..200] + "..." : text;
+        if (idx < 0) 
+        {
+            // Try matching normalized text if original failed
+            var normText = NormalizeForMatching(text);
+            var normKeyword = NormalizeForMatching(keyword);
+            idx = normText.IndexOf(normKeyword, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return text.Length > 200 ? text[..200] + "..." : text;
+        }
 
         int start = Math.Max(0, idx - contextChars);
         int end = Math.Min(text.Length, idx + keyword.Length + contextChars);
@@ -212,7 +216,7 @@ public class KeywordAnalyzerService
             sb.Append($"Ngữ cảnh tăng nặng: {string.Join(", ", amplifiers)}. ");
 
         if (severity >= 7)
-            sb.Append("Có dấu hiệu rò rỉ thông tin hoặc ý định nghỉ việc. Cần kiểm tra ngay. ");
+            sb.Append("Có dấu hiệu rò rỉ thông tin hoặc ý định nghỉ việc rõ ràng. ");
         else if (severity >= 5)
             sb.Append("Cần theo dõi thêm hành vi của nhân viên này. ");
 
@@ -251,15 +255,23 @@ public class KeywordAnalyzerService
                 Keyword = "nghỉ việc",
                 Category = "Nghỉ việc",
                 BaseSeverity = 6,
-                AmplifyPatterns = new[] { "quyết định", "chắc chắn", "tuần sau", "tháng sau", "nộp đơn", "thôi việc" },
-                AmplifyBonus = 2
+                AmplifyPatterns = new[] { "quyết định", "chắc chắn", "tuần sau", "tháng sau", "nộp đơn", "thôi việc", "xin nghỉ" },
+                AmplifyBonus = 3
             },
             new()
             {
-                Keyword = "nghi viec",
+                Keyword = "xin nghỉ",
                 Category = "Nghỉ việc",
-                BaseSeverity = 6,
-                AmplifyPatterns = new[] { "quyet dinh", "chac chan", "tuan sau", "thang sau", "nop don", "thoi viec" },
+                BaseSeverity = 5,
+                AmplifyPatterns = new[] { "thôi việc", "nghỉ luôn", "không làm nữa", "quyết định rồi" },
+                AmplifyBonus = 3
+            },
+            new()
+            {
+                Keyword = "thôi việc",
+                Category = "Nghỉ việc",
+                BaseSeverity = 7,
+                AmplifyPatterns = new[] { "quyết định", "chắc chắn", "nộp đơn", "chấm dứt" },
                 AmplifyBonus = 2
             },
             new()
@@ -267,7 +279,7 @@ public class KeywordAnalyzerService
                 Keyword = "tìm việc",
                 Category = "Nghỉ việc",
                 BaseSeverity = 5,
-                AmplifyPatterns = new[] { "cv", "phỏng vấn", "offer", "linkedin", "headhunter" },
+                AmplifyPatterns = new[] { "cv", "phỏng vấn", "offer", "linkedin", "headhunter", "jobsgo", "vietnamworks" },
                 AmplifyBonus = 2
             },
             new()
@@ -293,7 +305,7 @@ public class KeywordAnalyzerService
                 Keyword = "mã nguồn",
                 Category = "Dữ liệu dự án",
                 BaseSeverity = 6,
-                AmplifyPatterns = new[] { "gửi", "copy", "github", "drive", "upload", "bên ngoài" },
+                AmplifyPatterns = new[] { "gửi", "copy", "github", "drive", "upload", "bên ngoài", "source code" },
                 AmplifyBonus = 3
             },
             new()
@@ -360,32 +372,16 @@ public class KeywordAnalyzerService
             {
                 Keyword = "cv",
                 Category = "Nghỉ việc",
-                BaseSeverity = 4,
-                AmplifyPatterns = new[] { "gửi", "cập nhật", "linkedin", "apply", "ứng tuyển" },
+                BaseSeverity = 5,
+                AmplifyPatterns = new[] { "gửi", "cập nhật", "linkedin", "apply", "ứng tuyển", "curriculum vitae" },
                 AmplifyBonus = 2
             },
             new()
             {
-                Keyword = "công việc",
+                Keyword = "công việc mới",
                 Category = "Nghỉ việc",
-                BaseSeverity = 3,
-                AmplifyPatterns = new[] { "mới", "khác", "tốt hơn", "phỏng vấn", "thử sức" },
-                AmplifyBonus = 2
-            },
-            new()
-            {
-                Keyword = "việc làm",
-                Category = "Nghỉ việc",
-                BaseSeverity = 3,
-                AmplifyPatterns = new[] { "mới", "tìm", "tuyển dụng", "nhanh" },
-                AmplifyBonus = 2
-            },
-            new()
-            {
-                Keyword = "tuyển dụng",
-                Category = "Nghỉ việc",
-                BaseSeverity = 4,
-                AmplifyPatterns = new[] { "tin", "thông tin", "vị trí", "apply" },
+                BaseSeverity = 6,
+                AmplifyPatterns = new[] { "tìm", "phỏng vấn", "offer", "thử việc" },
                 AmplifyBonus = 2
             },
             new()
@@ -398,10 +394,10 @@ public class KeywordAnalyzerService
             },
             new()
             {
-                Keyword = "headhunter",
-                Category = "Nghỉ việc",
-                BaseSeverity = 5,
-                AmplifyPatterns = new[] { "gọi", "liên hệ", "linkedin", "offer" },
+                Keyword = "đối thủ",
+                Category = "Cạnh tranh",
+                BaseSeverity = 4,
+                AmplifyPatterns = new[] { "công ty", "dự án", "giá", "khách hàng" },
                 AmplifyBonus = 2
             },
             // === TEST KEYWORD ===

@@ -49,6 +49,16 @@ public class KeyboardHookService : IDisposable
         [Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 64)] StringBuilder receivingBuffer,
         int bufferSize, uint flags);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KBDLLHOOKSTRUCT
+    {
+        public uint vkCode;
+        public uint scanCode;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
     // Private fields
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _proc;
@@ -99,7 +109,8 @@ public class KeyboardHookService : IDisposable
     {
         if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
         {
-            int vkCode = Marshal.ReadInt32(lParam);
+            var hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            uint vkCode = hookStruct.vkCode;
 
             // Detect PrintScreen key (VK_SNAPSHOT = 0x2C)
             if (vkCode == 0x2C)
@@ -130,7 +141,7 @@ public class KeyboardHookService : IDisposable
             else
             {
                 // Convert virtual key to unicode character
-                var character = VirtualKeyToChar((uint)vkCode);
+                var character = VirtualKeyToChar(vkCode, hookStruct.scanCode);
                 if (character != null)
                 {
                     _textBuffer.Append(character);
@@ -150,16 +161,23 @@ public class KeyboardHookService : IDisposable
 
     /// <summary>
     /// Converts a virtual key code to its Unicode character representation.
+    /// Handles VK_PACKET (0xE7) for IME input.
     /// </summary>
-    private string? VirtualKeyToChar(uint vkCode)
+    private string? VirtualKeyToChar(uint vkCode, uint scanCode)
     {
         try
         {
+            // VK_PACKET (0xE7) is used by IMEs to send Unicode characters
+            if (vkCode == 0xE7)
+            {
+                return ((char)scanCode).ToString();
+            }
+
             var keyboardState = new byte[256];
             GetKeyboardState(keyboardState);
 
             var sb = new StringBuilder(4);
-            int result = ToUnicode(vkCode, 0, keyboardState, sb, sb.Capacity, 0);
+            int result = ToUnicode(vkCode, scanCode, keyboardState, sb, sb.Capacity, 0);
 
             if (result > 0)
                 return sb.ToString();
